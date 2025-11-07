@@ -47,7 +47,16 @@ start_server() {
 
   # Create a minimal cluster file if missing; fdbserver will update it.
   if [[ ! -f "$CLUSTER_FILE" ]]; then
-    echo "test@$FDB_LISTEN" > "$CLUSTER_FILE"
+    if command -v python3 >/dev/null 2>&1; then
+      cluster_id="$(python3 - <<'PY'
+import secrets
+print(secrets.token_hex(16))
+PY
+)"
+    else
+      cluster_id="$(LC_ALL=C tr -dc 'a-f0-9' < /dev/urandom | head -c 32)"
+    fi
+    echo "test:${cluster_id:-0123456789abcdef}@${FDB_LISTEN}" > "$CLUSTER_FILE"
   fi
 
   set -x
@@ -60,6 +69,12 @@ start_server() {
     --locality-machineid maryk-tests \
     --locality-zoneid local-test \
     --knob_max_outstanding=400 \
+    --knob_disable_posix_kernel_aio=1 \
+    --knob_desired_teams_per_server=1 \
+    --knob_min_available_space_ratio=0.001 \
+    --memory 512MiB \
+    --storage-memory 256MiB \
+    --cache-memory 64MiB \
     >"$LOG_DIR/fdbserver.out" 2>&1 &
   set +x
   echo $! > "$PID_FILE"
@@ -88,7 +103,7 @@ configure_if_needed() {
   # Configure a single-memory test database; ignore errors if it already exists.
   if [[ -x "$BIN_DIR/fdbcli" ]]; then
     local configure_output
-    configure_output="$("$BIN_DIR/fdbcli" --timeout 15 --exec "configure new single memory" 2>&1 || true)"
+    configure_output="$("$BIN_DIR/fdbcli" --timeout 15 --exec "configure new single memory logs=1 commit_proxies=1 grv_proxies=1" 2>&1 || true)"
     if grep -qi "Database created" <<<"$configure_output"; then
       echo "$configure_output"
     elif grep -qi "Database already exists" <<<"$configure_output"; then

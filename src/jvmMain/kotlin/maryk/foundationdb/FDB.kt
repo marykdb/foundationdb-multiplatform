@@ -9,9 +9,6 @@ actual class FDB internal constructor(
 
     actual fun open(clusterFilePath: String): Database = Database(delegate.open(clusterFilePath))
 
-    actual fun createCluster(clusterFilePath: String?): Cluster =
-        Cluster(delegate.createCluster(clusterFilePath))
-
     actual fun setUnclosedWarning(enabled: Boolean) {
         delegate.setUnclosedWarning(enabled)
     }

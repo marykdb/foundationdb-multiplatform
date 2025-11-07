@@ -2,80 +2,76 @@ package maryk.foundationdb
 
 actual class DatabaseOptions internal constructor(
     internal val delegate: com.apple.foundationdb.DatabaseOptions
-) {
-    actual fun setLocationCacheSize(value: Long) {
+) : DatabaseOptionSink {
+    actual override fun setLocationCacheSize(value: Long) {
         delegate.setLocationCacheSize(value)
     }
 
-    actual fun setMaxWatches(value: Long) {
+    actual override fun setMaxWatches(value: Long) {
         delegate.setMaxWatches(value)
     }
 
-    actual fun setMachineId(id: String) {
+    actual override fun setMachineId(id: String) {
         delegate.setMachineId(id)
     }
 
-    actual fun setDatacenterId(id: String) {
+    actual override fun setDatacenterId(id: String) {
         delegate.setDatacenterId(id)
     }
 
-    actual fun setSnapshotRywEnable() {
+    actual override fun setSnapshotRywEnable() {
         delegate.setSnapshotRywEnable()
     }
 
-    actual fun setSnapshotRywDisable() {
+    actual override fun setSnapshotRywDisable() {
         delegate.setSnapshotRywDisable()
     }
 
-    actual fun setTransactionLoggingMaxFieldLength(value: Long) {
+    actual override fun setTransactionLoggingMaxFieldLength(value: Long) {
         delegate.setTransactionLoggingMaxFieldLength(value)
     }
 
-    actual fun setTransactionTimeout(value: Long) {
+    actual override fun setTransactionTimeout(value: Long) {
         delegate.setTransactionTimeout(value)
     }
 
-    actual fun setTransactionRetryLimit(value: Long) {
+    actual override fun setTransactionRetryLimit(value: Long) {
         delegate.setTransactionRetryLimit(value)
     }
 
-    actual fun setTransactionMaxRetryDelay(value: Long) {
+    actual override fun setTransactionMaxRetryDelay(value: Long) {
         delegate.setTransactionMaxRetryDelay(value)
     }
 
-    actual fun setTransactionSizeLimit(value: Long) {
+    actual override fun setTransactionSizeLimit(value: Long) {
         delegate.setTransactionSizeLimit(value)
     }
 
-    actual fun setTransactionCausalReadRisky() {
+    actual override fun setTransactionCausalReadRisky() {
         delegate.setTransactionCausalReadRisky()
     }
 
-    actual fun setTransactionIncludePortInAddress() {
-        delegate.setTransactionIncludePortInAddress()
-    }
-
-    actual fun setTransactionAutomaticIdempotency() {
+    actual override fun setTransactionAutomaticIdempotency() {
         delegate.setTransactionAutomaticIdempotency()
     }
 
-    actual fun setTransactionBypassUnreadable() {
+    actual override fun setTransactionBypassUnreadable() {
         delegate.setTransactionBypassUnreadable()
     }
 
-    actual fun setTransactionUsedDuringCommitProtectionDisable() {
+    actual override fun setTransactionUsedDuringCommitProtectionDisable() {
         delegate.setTransactionUsedDuringCommitProtectionDisable()
     }
 
-    actual fun setTransactionReportConflictingKeys() {
+    actual override fun setTransactionReportConflictingKeys() {
         delegate.setTransactionReportConflictingKeys()
     }
 
-    actual fun setUseConfigDatabase() {
+    actual override fun setUseConfigDatabase() {
         delegate.setUseConfigDatabase()
     }
 
-    actual fun setTestCausalReadRisky(value: Long) {
+    actual override fun setTestCausalReadRisky(value: Long) {
         delegate.setTestCausalReadRisky(value)
     }
 }

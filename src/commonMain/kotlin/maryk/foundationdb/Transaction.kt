@@ -4,6 +4,10 @@ package maryk.foundationdb
  * Mutable FoundationDB transaction.
  */
 expect class Transaction : ReadTransaction, TransactionContext {
+    override fun <T> run(block: (Transaction) -> T): T
+    override fun <T> runAsync(block: (Transaction) -> FdbFuture<T>): FdbFuture<T>
+    override fun <T> read(block: (ReadTransaction) -> T): T
+    override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T>
     override fun options(): TransactionOptions
     fun set(key: ByteArray, value: ByteArray)
     fun clear(key: ByteArray)

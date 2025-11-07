@@ -1,6 +1,6 @@
 package maryk.foundationdb
 
-expect class DatabaseOptions {
+interface DatabaseOptionSink {
     fun setLocationCacheSize(value: Long)
     fun setMaxWatches(value: Long)
     fun setMachineId(id: String)
@@ -13,11 +13,31 @@ expect class DatabaseOptions {
     fun setTransactionMaxRetryDelay(value: Long)
     fun setTransactionSizeLimit(value: Long)
     fun setTransactionCausalReadRisky()
-    fun setTransactionIncludePortInAddress()
     fun setTransactionAutomaticIdempotency()
     fun setTransactionBypassUnreadable()
     fun setTransactionUsedDuringCommitProtectionDisable()
     fun setTransactionReportConflictingKeys()
     fun setUseConfigDatabase()
     fun setTestCausalReadRisky(value: Long)
+}
+
+expect class DatabaseOptions : DatabaseOptionSink {
+    override fun setLocationCacheSize(value: Long)
+    override fun setMaxWatches(value: Long)
+    override fun setMachineId(id: String)
+    override fun setDatacenterId(id: String)
+    override fun setSnapshotRywEnable()
+    override fun setSnapshotRywDisable()
+    override fun setTransactionLoggingMaxFieldLength(value: Long)
+    override fun setTransactionTimeout(value: Long)
+    override fun setTransactionRetryLimit(value: Long)
+    override fun setTransactionMaxRetryDelay(value: Long)
+    override fun setTransactionSizeLimit(value: Long)
+    override fun setTransactionCausalReadRisky()
+    override fun setTransactionAutomaticIdempotency()
+    override fun setTransactionBypassUnreadable()
+    override fun setTransactionUsedDuringCommitProtectionDisable()
+    override fun setTransactionReportConflictingKeys()
+    override fun setUseConfigDatabase()
+    override fun setTestCausalReadRisky(value: Long)
 }

@@ -1,13 +1,18 @@
 package maryk.foundationdb
 
 import maryk.foundationdb.async.AsyncIterable
-import maryk.foundationdb.toFdbFuture
 
 actual open class ReadTransaction internal constructor(
     internal open val delegate: com.apple.foundationdb.ReadTransaction
 ) {
     private fun wrap(iterable: com.apple.foundationdb.async.AsyncIterable<*>): AsyncIterable<KeyValue> =
         AsyncIterable(iterable) { KeyValue(it as com.apple.foundationdb.KeyValue) }
+
+    private fun wrapMapped(iterable: com.apple.foundationdb.async.AsyncIterable<*>): AsyncIterable<MappedKeyValue> =
+        AsyncIterable(iterable) { value ->
+            val mapped = value as com.apple.foundationdb.MappedKeyValue
+            mapped.toKotlinMappedKeyValue()
+        }
 
     actual fun get(key: ByteArray): FdbFuture<ByteArray?> =
         delegate.get(key).toFdbFuture()
@@ -30,6 +35,38 @@ actual open class ReadTransaction internal constructor(
     ): AsyncIterable<KeyValue> =
         wrap(delegate.getRange(begin, end, limit, reverse, streamingMode.toJava()))
 
+    actual fun getMappedRange(begin: ByteArray, end: ByteArray, mapper: ByteArray): AsyncIterable<MappedKeyValue> =
+        getMappedRange(begin, end, mapper, limit = 0)
+
+    actual fun getMappedRange(begin: ByteArray, end: ByteArray, mapper: ByteArray, limit: Int): AsyncIterable<MappedKeyValue> =
+        getMappedRange(begin, end, mapper, limit, reverse = false)
+
+    actual fun getMappedRange(
+        begin: ByteArray,
+        end: ByteArray,
+        mapper: ByteArray,
+        limit: Int,
+        reverse: Boolean
+    ): AsyncIterable<MappedKeyValue> =
+        getMappedRange(begin, end, mapper, limit, reverse, StreamingMode.ITERATOR)
+
+    actual fun getMappedRange(
+        begin: ByteArray,
+        end: ByteArray,
+        mapper: ByteArray,
+        limit: Int,
+        reverse: Boolean,
+        streamingMode: StreamingMode
+    ): AsyncIterable<MappedKeyValue> =
+        getMappedRange(
+            KeySelector.firstGreaterOrEqual(begin),
+            KeySelector.firstGreaterOrEqual(end),
+            mapper,
+            limit,
+            reverse,
+            streamingMode
+        )
+
     actual fun getRange(range: Range): AsyncIterable<KeyValue> =
         wrap(delegate.getRange(range.delegate))
 
@@ -47,6 +84,29 @@ actual open class ReadTransaction internal constructor(
     ): AsyncIterable<KeyValue> =
         wrap(delegate.getRange(range.delegate, limit, reverse, streamingMode.toJava()))
 
+    actual fun getMappedRange(range: Range, mapper: ByteArray): AsyncIterable<MappedKeyValue> =
+        getMappedRange(range, mapper, limit = 0)
+
+    actual fun getMappedRange(range: Range, mapper: ByteArray, limit: Int): AsyncIterable<MappedKeyValue> =
+        getMappedRange(range, mapper, limit, reverse = false)
+
+    actual fun getMappedRange(
+        range: Range,
+        mapper: ByteArray,
+        limit: Int,
+        reverse: Boolean
+    ): AsyncIterable<MappedKeyValue> =
+        getMappedRange(range, mapper, limit, reverse, StreamingMode.ITERATOR)
+
+    actual fun getMappedRange(
+        range: Range,
+        mapper: ByteArray,
+        limit: Int,
+        reverse: Boolean,
+        streamingMode: StreamingMode
+    ): AsyncIterable<MappedKeyValue> =
+        getMappedRange(range.begin, range.end, mapper, limit, reverse, streamingMode)
+
     actual fun getRange(begin: KeySelector, end: KeySelector): AsyncIterable<KeyValue> =
         wrap(delegate.getRange(begin.delegate, end.delegate))
 
@@ -61,6 +121,28 @@ actual open class ReadTransaction internal constructor(
         streamingMode: StreamingMode
     ): AsyncIterable<KeyValue> =
         wrap(delegate.getRange(begin.delegate, end.delegate, limit, reverse, streamingMode.toJava()))
+
+    actual fun getMappedRange(begin: KeySelector, end: KeySelector, mapper: ByteArray): AsyncIterable<MappedKeyValue> =
+        getMappedRange(begin, end, mapper, limit = 0, reverse = false)
+
+    actual fun getMappedRange(
+        begin: KeySelector,
+        end: KeySelector,
+        mapper: ByteArray,
+        limit: Int,
+        reverse: Boolean
+    ): AsyncIterable<MappedKeyValue> =
+        getMappedRange(begin, end, mapper, limit, reverse, StreamingMode.ITERATOR)
+
+    actual fun getMappedRange(
+        begin: KeySelector,
+        end: KeySelector,
+        mapper: ByteArray,
+        limit: Int,
+        reverse: Boolean,
+        streamingMode: StreamingMode
+    ): AsyncIterable<MappedKeyValue> =
+        wrapMapped(delegate.getMappedRange(begin.delegate, end.delegate, mapper, limit, reverse, streamingMode.toJava()))
 
     actual fun getReadVersion(): FdbFuture<Long> =
         delegate.getReadVersion().toFdbFuture()

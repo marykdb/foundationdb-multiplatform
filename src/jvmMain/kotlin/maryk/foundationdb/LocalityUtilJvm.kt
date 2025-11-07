@@ -2,6 +2,7 @@ package maryk.foundationdb
 
 import java.util.ArrayList
 import java.util.concurrent.CompletableFuture
+import maryk.foundationdb.async.CloseableAsyncIterator
 
 internal actual fun getBoundaryKeysInternal(database: Database, begin: ByteArray, end: ByteArray): FdbFuture<List<ByteArray>> {
     val iterator = com.apple.foundationdb.LocalityUtil.getBoundaryKeys(database.delegate, begin, end)
@@ -38,3 +39,23 @@ private fun <T, R> collectIterator(
 
     return step()
 }
+
+internal actual fun openBoundaryKeysIteratorInternal(
+    database: Database,
+    begin: ByteArray,
+    end: ByteArray
+): CloseableAsyncIterator<ByteArray> =
+    CloseableAsyncIterator(
+        com.apple.foundationdb.LocalityUtil.getBoundaryKeys(database.delegate, begin, end),
+        { it as ByteArray }
+    )
+
+internal actual fun openBoundaryKeysIteratorInternal(
+    transaction: Transaction,
+    begin: ByteArray,
+    end: ByteArray
+): CloseableAsyncIterator<ByteArray> =
+    CloseableAsyncIterator(
+        com.apple.foundationdb.LocalityUtil.getBoundaryKeys(transaction.delegate, begin, end),
+        { it as ByteArray }
+    )

@@ -1,0 +1,3 @@
+headers = fdb_c.h
+package = foundationdb.c
+linkerOpts = -lfdb_c

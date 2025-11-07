@@ -1,11 +1,7 @@
 package maryk.foundationdb
 
-import maryk.foundationdb.async.AsyncIterable
-import maryk.foundationdb.asCompletableFuture
-import maryk.foundationdb.toFdbFuture
-
 actual class Transaction internal constructor(
-    internal override val delegate: com.apple.foundationdb.Transaction
+    override val delegate: com.apple.foundationdb.Transaction
 ) : ReadTransaction(delegate), TransactionContext {
     actual override fun options(): TransactionOptions = TransactionOptions(delegate.options())
 
@@ -53,25 +49,25 @@ actual class Transaction internal constructor(
         delegate.getEstimatedRangeSizeBytes(range.delegate).toFdbFuture()
 
     actual fun commit(): FdbFuture<Unit> =
-        delegate.commit().thenApply { Unit }.toFdbFuture()
+        delegate.commit().thenApply { }.toFdbFuture()
 
     actual fun onError(error: FDBException): FdbFuture<Unit> =
-        delegate.onError(error).thenApply { Unit }.toFdbFuture()
+        delegate.onError(error).thenApply { }.toFdbFuture()
 
     actual fun close() {
         delegate.close()
     }
 
-    override fun <T> run(block: (Transaction) -> T): T =
+    actual override fun <T> run(block: (Transaction) -> T): T =
         delegate.run { txn -> block(Transaction(txn)) }
 
-    override fun <T> runAsync(block: (Transaction) -> FdbFuture<T>): FdbFuture<T> =
+    actual override fun <T> runAsync(block: (Transaction) -> FdbFuture<T>): FdbFuture<T> =
         delegate.runAsync { txn -> block(Transaction(txn)).asCompletableFuture() }.toFdbFuture()
 
-    override fun <T> read(block: (ReadTransaction) -> T): T =
+    actual override fun <T> read(block: (ReadTransaction) -> T): T =
         delegate.read { rt -> block(ReadTransaction(rt)) }
 
-    override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T> =
+    actual override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T> =
         delegate.readAsync { rt -> block(ReadTransaction(rt)).asCompletableFuture() }.toFdbFuture()
 
     private fun MutationType.toJava(): com.apple.foundationdb.MutationType = when (this) {

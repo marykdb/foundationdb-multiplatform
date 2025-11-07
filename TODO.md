@@ -1,25 +1,11 @@
 # FoundationDB Multiplatform TODO
 
-This repository now exposes the core FoundationDB client surface as Kotlin Multiplatform `expect` APIs with JVM `actual` implementations. The next big milestone is to light up the native targets and expand coverage beyond the initial essentials.
+This repository now exposes the core FoundationDB client surface as Kotlin Multiplatform `expect` APIs with JVM and native `actual` implementations. The native target now covers the same surface area as JVM, including async utilities, directory helpers, tuple/subspace helpers, and coroutine-friendly futures.
 
 ## Remaining Work
 
-- **Implement native `actual` bindings**  
-  - Decide on interop strategy (C-API via Kotlin/Native cinterop, shared library loading, error handling).  
-  - Port the coroutine bridging layer (`FdbFuture`, `fdbFutureFromSuspend`) to native event loops.  
-  - Provide native counterparts for every class listed in the table below.
-- **Augment API coverage**  
-  - Surface additional FoundationDB types as needed (e.g., `MutationType` variants, range split helpers, tenant configuration, option sets).  
-  - Mirror utility helpers used by Maryk datastore code (e.g., watchers, versionstamp helpers) once required.
-- **Refine coroutine ergonomics**  
-  - Audit usages in `maryk/store/foundationdb` and migrate remaining `CompletableFuture` code to the new `FdbFuture` abstractions.  
-  - Add structured-concurrency friendly cancellation semantics for long-running range scans.
-- **Testing and validation**  
-  - Introduce JVM integration tests hitting a real or embedded FoundationDB instance.  
-  - Plan native CI builds and runtime verification once native bindings land.
-- **Documentation & Samples**  
-  - Update module README with usage examples.  
-  - Provide guidance for configuring native toolchains (library search paths, environment variables).
+- **Maintenance cleanup** (ongoing)  
+  - Keep documenting new coverage as API surface expands, and track any new helpers (watchers, versionstamp utilities) that surface later.
 
 ## Implementation Matrix (per FDB Java API)
 
@@ -29,57 +15,61 @@ Legend: ✅ Implemented, ⬜ Pending, ➖ Not currently planned / defer
 
 | Class / Component         | JVM | Native | Tested | Notes |
 | ------------------------- | --- | ------ | ------ | ----- |
-| `FDB`                     | ✅  | ⬜ | ✅ | entry point `selectAPIVersion`, `open` |
-| `Database`                | ✅  | ⬜ | ✅ | wrapped in `maryk.foundationdb.Database` |
-| `Tenant`                  | ✅  | ⬜ | ✅ | tenant context support |
-| `Transaction`             | ✅  | ⬜ | ✅ | includes mutation helpers |
-| `ReadTransaction`         | ✅  | ⬜ | ✅ | snapshot + read operations |
-| `TransactionContext`      | ✅  | ⬜ | ✅ | surfaced via shared interface |
-| `ReadTransactionContext`  | ✅  | ⬜ | ✅ | shared interface available via TransactionContext |
-| `DatabaseOptions`         | ✅  | ⬜ | ✅ | extended txn defaults (cache, watches, retry) |
-| `NetworkOptions`          | ✅  | ⬜ | ✅ | broad trace/TLS/buggify knobs exposed |
-| `TransactionOptions`      | ✅  | ⬜ | ✅ | exposes major per-transaction knobs (retry, timeouts, system access, tags) |
-| `TenantManagement`        | ✅  | ⬜ | ✅ | create/delete/list tenants bridged |
-| `Cluster` / `ClusterOptions` | ✅  | ⬜ | ✅ | wrapper available for connect-close flows |
-| `EventKeeper` / `MapEventKeeper` | ✅ | ⬜ | ✅ | basic event instrumentation available |
-| `LocalityUtil`            | ✅  | ⬜ | ✅ | boundary key + address helpers exposed |
-| `Range`, `KeySelector`, `KeyValue` | ✅ | ⬜ | ✅ | basic key-space primitives |
-| `MutationType`            | ✅  | ⬜ | ✅ | enum mapping for `mutate` |
-| `StreamingMode`           | ✅  | ⬜ | ✅ | enum bridged for range read batching hints |
-| `RangeQuery` / `RangeResult*` | ✅ | ⬜ | ✅ | use `ReadTransaction.collectRange` + summaries |
-| `Future*` specializations (`FutureResult`, `FutureVoid`, etc.) | ✅ | ⬜ | ✅ | use existing `CompletableFuture.toFdbFuture` bridge |
+| `FDB`                     | ✅  | ✅ | ✅ | entry point `selectAPIVersion`, `open` |
+| `Database`                | ✅  | ✅ | ✅ | wrapped in `maryk.foundationdb.Database` |
+| `Tenant`                  | ✅  | ✅ | ✅ | tenant context support |
+| `Transaction`             | ✅  | ✅ | ✅ | includes mutation helpers |
+| `ReadTransaction`         | ✅  | ✅ | ✅ | snapshot + read operations |
+| `TransactionContext`      | ✅  | ✅ | ✅ | surfaced via shared interface |
+| `ReadTransactionContext`  | ✅  | ✅ | ✅ | shared interface available via TransactionContext |
+| `DatabaseOptions`         | ✅  | ✅ | ✅ | extended txn defaults + option helper DSL |
+| `NetworkOptions`          | ✅  | ✅ | ✅ | broad trace/TLS/buggify knobs exposed |
+| `TransactionOptions`      | ✅  | ✅ | ✅ | exposes major knobs + option helper DSL |
+| `TenantManagement`        | ✅  | ✅ | ✅ | create/delete/list tenants bridged |
+| `Cluster` / `ClusterOptions` | ✅  | ✅ | ✅ | wrapper available for connect-close flows |
+| `EventKeeper` / `MapEventKeeper` | ✅ | ✅ | ✅ | basic event instrumentation available |
+| `LocalityUtil`            | ✅  | ✅ | ✅ | boundary key + address helpers exposed |
+| `Range`, `KeySelector`, `KeyValue` | ✅ | ✅ | ✅ | basic key-space primitives |
+| `MutationType`            | ✅  | ✅ | ✅ | enum mapping for `mutate` |
+| `StreamingMode`           | ✅  | ✅ | ✅ | enum bridged for range read batching hints |
+| `RangeQuery` / `RangeResult*` | ✅ | ✅ | ✅ | use `ReadTransaction.collectRange` + summaries |
+| `Future*` specializations (`FutureResult`, `FutureVoid`, etc.) | ✅ | ✅ | ✅ | use existing `CompletableFuture.toFdbFuture` bridge via `NativeFuture` |
 | `NativeFuture` / `NativeObjectWrapper` | ➖ | ➖ | ➖ | internal JNI plumbing, usually hidden |
-| `ApiVersion`, `ConflictRangeType` | ✅ | ⬜ | ✅ | constants exposed in Kotlin API |
+| `ApiVersion`, `ConflictRangeType` | ✅ | ✅ | ✅ | constants exposed in Kotlin API |
 
 ### Async Utilities (`com.apple.foundationdb.async`)
 
 | Class / Component    | JVM | Native | Tested | Notes |
 | -------------------- | --- | ------ | ------ | ----- |
-| `AsyncIterable`      | ✅  | ⬜ | ✅ | wrapped with mapper-based bridge |
-| `AsyncIterator`      | ✅  | ⬜ | ✅ | coroutine-friendly `next()` |
-| `AsyncUtil`          | ✅  | ⬜ | ✅ | helpers to collect / iterate async streams |
+| `AsyncIterable`      | ✅  | ✅ | ✅ | wrapped with mapper-based bridge |
+| `AsyncIterator`      | ✅  | ✅ | ✅ | coroutine-friendly `next()` |
+| `AsyncUtil`          | ✅  | ✅ | ✅ | helpers to collect / iterate async streams |
 | `CloneableException` | ➖ | ➖ | ➖ | currently unused directly |
-| `Cancellable` / `CloseableAsyncIterator` | ✅ | ⬜ | ✅ | mapped to FDB async interfaces |
+| `Cancellable` / `CloseableAsyncIterator` | ✅ | ✅ | ✅ | mapped to FDB async interfaces |
 
 ### Directory Layer (`com.apple.foundationdb.directory`)
 
 | Class / Component      | JVM | Native | Tested | Notes |
 | ---------------------- | --- | ------ | ------ | ----- |
-| `DirectoryLayer`       | ✅  | ⬜ | ✅ | create/open directory paths |
-| `DirectorySubspace`    | ✅  | ⬜ | ✅ | pack/unpack directory prefixes |
-| `DirectoryPartition`   | ✅  | ⬜ | ✅ | typealias for partition subspaces |
-| `Directory` (interface) | ✅ | ⬜ | ✅ | wrapper for directory operations |
-| Exceptions (`Directory*Exception`) | ➖ | ➖ | ➖ | surface via native exceptions as needed |
-| Utility classes (`PathUtil`, `DirectoryUtil`) | ➖ | ➖ | ➖ | consider static helper exposure |
+| `DirectoryLayer`       | ✅  | ✅ | ✅ | create/open directory paths |
+| `DirectorySubspace`    | ✅  | ✅ | ✅ | pack/unpack directory prefixes |
+| `DirectoryPartition`   | ✅  | ✅ | ✅ | typealias for partition subspaces |
+| `Directory` (interface) | ✅ | ✅ | ✅ | wrapper for directory operations |
+| Exceptions (`Directory*Exception`) | ✅ | ✅ | ✅ | shared Kotlin implementations with parity tests |
+| Utility classes (`PathUtil`, `DirectoryUtil`) | ✅ | ✅ | ✅ | helpers exposed in common code with coverage |
 
 ### Tuple & Subspace (`com.apple.foundationdb.tuple` / `subspace`)
 
 | Class / Component | JVM | Native | Tested | Notes |
 | ----------------- | --- | ------ | ------ | ----- |
-| `Tuple`           | ✅  | ⬜ | ✅ | packing/unpacking only |
-| `Versionstamp`    | ✅  | ⬜ | ✅ | supports packing/unpacking of versionstamp tuples |
-| `ByteArrayUtil` / `TupleUtil` | ➖ | ➖ | ➖ | helper utilities, optional surface |
-| `Subspace`        | ✅  | ⬜ | ✅ | prefix helper for tuple-derived key ranges |
+| `Tuple`           | ✅  | ✅ | ✅ | packing/unpacking only |
+| `Versionstamp`    | ✅  | ✅ | ✅ | supports packing/unpacking of versionstamp tuples |
+| `ByteArrayUtil`        | ✅  | ✅ | ✅ | helper utilities exposed in common/jvm/native |
+| `FastByteComparisons`  | ✅  | ✅ | ✅ | comparator + byte ordering helpers |
+| `IterableComparator`   | ✅  | ✅ | ✅ | matches Java tuple comparator support |
+| `TupleUtil`            | ✅  | ✅ | ✅ | numeric helpers and encoding utilities |
+| `StringUtil`           | ✅  | ✅ | ✅ | UTF utilities used by tuple encoding |
+| `Subspace`        | ✅  | ✅ | ✅ | prefix helper for tuple-derived key ranges |
 
 ### Testing & Misc (`com.apple.foundationdb.testing`, etc.)
 
@@ -91,12 +81,37 @@ Legend: ✅ Implemented, ⬜ Pending, ➖ Not currently planned / defer
 
 | Component                        | JVM | Native | Tested | Notes |
 | -------------------------------- | --- | ------ | ------ | ----- |
-| `FdbFuture` abstraction          | ✅  | ⬜ | ✅ | unify async semantics |
-| Coroutine helpers (`runSuspend`) | ✅  | ⬜ | ✅ | leverage native event loops |
+| `FdbFuture` abstraction          | ✅  | ✅ | ✅ | unify async semantics |
+| Coroutine helpers (`runSuspend`) | ✅  | ✅ | ✅ | leverage native event loops |
 
-✅ — Implemented and wired for JVM  
-⬜ — Not yet implemented  
+✅ — Implemented and wired for both JVM & native  
 ➖ — Currently deferred / optional
+
+### Remaining Java-only pieces
+
+The upstream `org.foundationdb:fdb-java` bundle still exposes several JVM-only helpers that have not yet been mirrored in the common API. They include:
+
+- `NativeFuture`, `NativeObjectWrapper`, `JNIUtil` and the assorted `Future*` / `Native*` plumbing (already implicit in our `NativeFuture` but not one-to-one); 
+- direct buffer helpers (`DirectBufferIterator`, `DirectBufferPool`) used by the Java runtime;
+- tuple utilities (additional encoding helpers) if new tuple features require them;
+- `OptionsSet`, `OptionConsumer` and the various deprecated `set*` helpers the Java client exposes via `Options` objects;
+- directory-specific exceptions such as `DirectoryAlreadyExistsException`, `DirectoryMoveException`, `DirectoryVersionException`, `MismatchedLayerException`, `NoSuchDirectoryException`, plus helpers like `DirectoryUtil`/`PathUtil`;
+- testing helpers under `com.apple.foundationdb.testing` (workloads, `PerfMetric`, `Promise`, etc.).
+
+These can stay deferred unless we need them for additional functionality or tighter parity; keep the list here so we can revisit when those APIs are required.
+
+### High-priority native gaps to consider
+
+The sections above include everything we deliberately kept in TODO for future expansion, but the most relevant additions to pursue next are:
+
+- **Advanced range/result helpers** — ✅ completed (Nov 10, 2025). Both JVM and native now surface `MappedKeyValue`, `MappedRangeResult`, and helper collectors mirroring the Java API.
+- **Directory-layer helpers and exceptions** — ✅ completed (Nov 15, 2025). Common helpers plus native exception parity ensure consistent behavior.
+- **ByteArrayUtil helpers** — ✅ completed (Nov 18, 2025). Shared helper mirrors JVM utilities for concatenation and printable formats.
+- **FastByteComparisons + IterableComparator** — ✅ completed (Nov 19, 2025). Shared comparison helpers unlock consistent tuple/byte ordering.
+- **Tuple utility helpers** — ✅ completed (Nov 19, 2025). Float/double encoders and string utilities now available for both targets.
+- **Options helpers** — ✅ completed (Nov 19, 2025). Shared DSL/sets mirror JVM `OptionsSet` flows for both database and transaction contexts.
+
+If any of these become necessary, we can promote them from the “deferred” section into focused implementation tasks and extend the native API accordingly.
 
 ---
 

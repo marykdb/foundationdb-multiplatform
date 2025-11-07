@@ -1,9 +1,7 @@
 package maryk.foundationdb.directory
 
-import maryk.foundationdb.Database
 import maryk.foundationdb.FdbFuture
 import maryk.foundationdb.ReadTransactionContext
-import maryk.foundationdb.Transaction
 import maryk.foundationdb.TransactionContext
 
 expect class Directory {

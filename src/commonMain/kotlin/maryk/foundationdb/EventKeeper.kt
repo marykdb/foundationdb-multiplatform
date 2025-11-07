@@ -18,4 +18,9 @@ interface EventKeeper {
     fun getTimeNanos(event: FdbEvent): Long
 }
 
-expect class MapEventKeeper() : EventKeeper
+expect class MapEventKeeper() : EventKeeper {
+    override fun count(event: FdbEvent, amount: Long)
+    override fun timeNanos(event: FdbEvent, nanos: Long)
+    override fun getCount(event: FdbEvent): Long
+    override fun getTimeNanos(event: FdbEvent): Long
+}

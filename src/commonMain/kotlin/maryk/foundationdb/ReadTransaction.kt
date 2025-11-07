@@ -11,13 +11,24 @@ expect open class ReadTransaction {
     fun getRange(begin: ByteArray, end: ByteArray, limit: Int): AsyncIterable<KeyValue>
     fun getRange(begin: ByteArray, end: ByteArray, limit: Int, reverse: Boolean): AsyncIterable<KeyValue>
     fun getRange(begin: ByteArray, end: ByteArray, limit: Int, reverse: Boolean, streamingMode: StreamingMode): AsyncIterable<KeyValue>
+    fun getMappedRange(begin: ByteArray, end: ByteArray, mapper: ByteArray): AsyncIterable<MappedKeyValue>
+    fun getMappedRange(begin: ByteArray, end: ByteArray, mapper: ByteArray, limit: Int): AsyncIterable<MappedKeyValue>
+    fun getMappedRange(begin: ByteArray, end: ByteArray, mapper: ByteArray, limit: Int, reverse: Boolean): AsyncIterable<MappedKeyValue>
+    fun getMappedRange(begin: ByteArray, end: ByteArray, mapper: ByteArray, limit: Int, reverse: Boolean, streamingMode: StreamingMode): AsyncIterable<MappedKeyValue>
     fun getRange(range: Range): AsyncIterable<KeyValue>
     fun getRange(range: Range, limit: Int): AsyncIterable<KeyValue>
     fun getRange(range: Range, limit: Int, reverse: Boolean): AsyncIterable<KeyValue>
     fun getRange(range: Range, limit: Int, reverse: Boolean, streamingMode: StreamingMode): AsyncIterable<KeyValue>
+    fun getMappedRange(range: Range, mapper: ByteArray): AsyncIterable<MappedKeyValue>
+    fun getMappedRange(range: Range, mapper: ByteArray, limit: Int): AsyncIterable<MappedKeyValue>
+    fun getMappedRange(range: Range, mapper: ByteArray, limit: Int, reverse: Boolean): AsyncIterable<MappedKeyValue>
+    fun getMappedRange(range: Range, mapper: ByteArray, limit: Int, reverse: Boolean, streamingMode: StreamingMode): AsyncIterable<MappedKeyValue>
     fun getRange(begin: KeySelector, end: KeySelector): AsyncIterable<KeyValue>
     fun getRange(begin: KeySelector, end: KeySelector, limit: Int, reverse: Boolean): AsyncIterable<KeyValue>
     fun getRange(begin: KeySelector, end: KeySelector, limit: Int, reverse: Boolean, streamingMode: StreamingMode): AsyncIterable<KeyValue>
+    fun getMappedRange(begin: KeySelector, end: KeySelector, mapper: ByteArray): AsyncIterable<MappedKeyValue>
+    fun getMappedRange(begin: KeySelector, end: KeySelector, mapper: ByteArray, limit: Int, reverse: Boolean): AsyncIterable<MappedKeyValue>
+    fun getMappedRange(begin: KeySelector, end: KeySelector, mapper: ByteArray, limit: Int, reverse: Boolean, streamingMode: StreamingMode): AsyncIterable<MappedKeyValue>
     fun getReadVersion(): FdbFuture<Long>
     fun setReadVersion(version: Long)
     fun addReadConflictKeyIfNotSnapshot(key: ByteArray): Boolean
