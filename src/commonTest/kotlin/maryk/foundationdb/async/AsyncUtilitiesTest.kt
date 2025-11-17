@@ -1,13 +1,15 @@
 package maryk.foundationdb.async
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
 import maryk.foundationdb.FoundationDbTestHarness
 import maryk.foundationdb.LocalityUtil
 import maryk.foundationdb.Range
 import maryk.foundationdb.decodeToUtf8
 import maryk.foundationdb.readSuspend
 import maryk.foundationdb.runSuspend
+import maryk.foundationdb.tuple.Tuple
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class AsyncUtilitiesTest {
     private val harness = FoundationDbTestHarness()
@@ -48,4 +50,32 @@ class AsyncUtilitiesTest {
         iterator.close()
     }
 
+
+    @Test
+    fun collectAndForEach() = harness.runAndReset {
+        val prefix = Tuple.from(namespace, "async-util").pack()
+        val keys = (0 until 5).map { Tuple.from(namespace, "async-util", it).pack() }
+
+        database.runSuspend { txn ->
+            txn.clear(Range.startsWith(prefix))
+            keys.forEachIndexed { index, key ->
+                txn.set(key, "value-$index".encodeToByteArray())
+            }
+        }
+
+        val collected = database.readSuspend { rt ->
+            AsyncUtil.collect(rt.getRange(Range.startsWith(prefix))).await()
+        }
+        assertEquals(keys.size, collected.size)
+
+        val observed = mutableListOf<String>()
+        database.readSuspend { rt ->
+            AsyncUtil.forEach(
+                rt.getRange(Range.startsWith(prefix)),
+                { kv -> observed += kv.value.decodeToString() }
+            ).await()
+        }
+        assertEquals(collected.map { it.value.decodeToString() }, observed)
+        assertTrue(observed.all { it.startsWith("value-") })
+    }
 }

@@ -44,6 +44,10 @@ class ClusterTenantTest {
 
             val stored = tenant.readSuspend { rt -> rt.get(tenantKey).await() }
             assertEquals("inside-tenant", stored?.decodeToUtf8())
+
+            tenant.runSuspend { txn ->
+                txn.clear(byteArrayOf(), byteArrayOf(0xFF.toByte()))
+            }
         } finally {
             tenant.close()
         }

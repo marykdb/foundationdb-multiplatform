@@ -1,7 +1,5 @@
 package maryk.foundationdb.directory
 
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.CompletionException
 import maryk.foundationdb.Database
 import maryk.foundationdb.FdbFuture
 import maryk.foundationdb.ReadTransactionContext
@@ -9,6 +7,8 @@ import maryk.foundationdb.Tenant
 import maryk.foundationdb.Transaction
 import maryk.foundationdb.TransactionContext
 import maryk.foundationdb.toFdbFuture
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionException
 
 actual class Directory internal constructor(
     internal val delegate: com.apple.foundationdb.directory.Directory

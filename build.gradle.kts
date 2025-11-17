@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 plugins {
     kotlin("multiplatform") version "2.2.10"
     id("com.vanniktech.maven.publish") version "0.34.0"
+    id("org.jetbrains.kotlinx.kover") version "0.8.0"
 }
 
 group = "io.maryk.foundationdb"
@@ -183,6 +184,16 @@ tasks.withType<KotlinCompilationTask<*>>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+}
+
+kover {
+    reports {
+        total {
+            html {
+                htmlDir.set(layout.projectDirectory.dir("htmlReport"))
+            }
+        }
+    }
 }
 
 mavenPublishing {

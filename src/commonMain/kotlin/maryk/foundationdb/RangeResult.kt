@@ -1,7 +1,5 @@
 package maryk.foundationdb
 
-import maryk.foundationdb.tuple.Tuple
-
 data class RangeResultSummary(
     val lastKey: ByteArray?,
     val keyCount: Int,

@@ -60,7 +60,7 @@ PY
   fi
 
   set -x
-  "$BIN_DIR/fdbserver" \
+"$BIN_DIR/fdbserver" \
     --cluster-file "$CLUSTER_FILE" \
     --listen-address "$FDB_LISTEN" \
     --public-address "$FDB_LISTEN" \
@@ -72,6 +72,7 @@ PY
     --knob_disable_posix_kernel_aio=1 \
     --knob_desired_teams_per_server=1 \
     --knob_min_available_space_ratio=0.001 \
+    --knob_enable_tenant_management=1 \
     --memory 512MiB \
     --storage-memory 256MiB \
     --cache-memory 64MiB \
@@ -103,13 +104,43 @@ configure_if_needed() {
   # Configure a single-memory test database; ignore errors if it already exists.
   if [[ -x "$BIN_DIR/fdbcli" ]]; then
     local configure_output
-    configure_output="$("$BIN_DIR/fdbcli" --timeout 15 --exec "configure new single memory logs=1 commit_proxies=1 grv_proxies=1" 2>&1 || true)"
+    configure_output="$("$BIN_DIR/fdbcli" --timeout 15 --exec "configure new single memory tenant_mode=optional_experimental logs=1 commit_proxies=1 grv_proxies=1" 2>&1 || true)"
     if grep -qi "Database created" <<<"$configure_output"; then
       echo "$configure_output"
     elif grep -qi "Database already exists" <<<"$configure_output"; then
       echo "Reusing existing FoundationDB configuration"
     elif [[ -n "$configure_output" ]]; then
       echo "$configure_output" >&2
+    fi
+  fi
+}
+
+ensure_tenant_mode() {
+  export FDB_CLUSTER_FILE="$CLUSTER_FILE"
+  if [[ -x "$BIN_DIR/fdbcli" ]]; then
+    local tenant_output
+    tenant_output="$("$BIN_DIR/fdbcli" --timeout 15 --exec "configure tenant_mode=optional_experimental" 2>&1 || true)"
+    if [[ -n "$tenant_output" ]]; then
+      if grep -qi "error" <<<"$tenant_output" && ! grep -qi "already" <<<"$tenant_output"; then
+        echo "$tenant_output" >&2
+      else
+        echo "$tenant_output"
+      fi
+    fi
+  fi
+}
+
+verify_tenant_support() {
+  export FDB_CLUSTER_FILE="$CLUSTER_FILE"
+  if [[ -x "$BIN_DIR/fdbcli" ]]; then
+    local verify_output
+    verify_output="$("$BIN_DIR/fdbcli" --timeout 15 --exec "tenant list" 2>&1 || true)"
+    if grep -qi "Tenants have been disabled" <<<"$verify_output"; then
+      echo "Tenant list failed: $verify_output" >&2
+      return 1
+    fi
+    if [[ -n "$verify_output" ]]; then
+      echo "$verify_output"
     fi
   fi
 }
@@ -132,6 +163,8 @@ fi
 
 # Ensure configuration happens before waiting for availability
 configure_if_needed || true
+ensure_tenant_mode || true
+verify_tenant_support || true
 
 if ! wait_ready; then
   echo "fdbserver did not become ready in time" >&2

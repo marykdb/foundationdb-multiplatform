@@ -24,7 +24,7 @@ actual class Subspace {
     }
 
     actual fun get(obj: Any?): Subspace =
-        Subspace(prefixBytes + obj.toString().encodeToByteArray() + byteArrayOf('/'.code.toByte()))
+        Subspace(prefixBytes + Tuple.from(obj).pack())
 
     actual fun get(tuple: Tuple): Subspace = Subspace(prefixBytes + tuple.pack())
 
@@ -32,13 +32,17 @@ actual class Subspace {
 
     actual fun pack(): ByteArray = prefixBytes.copyOf()
 
-    actual fun pack(value: Any?): ByteArray = get(value).pack()
+    actual fun pack(value: Any?): ByteArray = prefixBytes + Tuple.from(value).pack()
 
     actual fun pack(tuple: Tuple): ByteArray = prefixBytes + tuple.pack()
 
-    actual fun packWithVersionstamp(tuple: Tuple): ByteArray = pack(tuple)
+    actual fun packWithVersionstamp(tuple: Tuple): ByteArray = prefixBytes + tuple.packWithVersionstamp()
 
-    actual fun unpack(key: ByteArray): Tuple = Tuple.fromBytes(key.copyOf())
+    actual fun unpack(key: ByteArray): Tuple {
+        require(contains(key)) { "Key does not belong to this subspace" }
+        val suffix = key.copyOfRange(prefixBytes.size, key.size)
+        return Tuple.fromBytes(suffix)
+    }
 
     actual fun range(): Range {
         val start = prefixBytes.copyOf()

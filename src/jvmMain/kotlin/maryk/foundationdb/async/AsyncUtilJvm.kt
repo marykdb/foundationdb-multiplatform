@@ -1,10 +1,9 @@
 package maryk.foundationdb.async
 
-import java.util.ArrayList
-import java.util.concurrent.CompletableFuture
 import maryk.foundationdb.FdbFuture
 import maryk.foundationdb.asCompletableFuture
 import maryk.foundationdb.toFdbFuture
+import java.util.concurrent.CompletableFuture
 
 actual object AsyncUtil {
     actual fun <T> collect(iterable: AsyncIterable<T>): FdbFuture<List<T>> =

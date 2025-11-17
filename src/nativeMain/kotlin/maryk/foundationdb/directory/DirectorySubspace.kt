@@ -1,10 +1,10 @@
 package maryk.foundationdb.directory
 
 import maryk.foundationdb.ByteArrayUtil
+import maryk.foundationdb.FDBException
 import maryk.foundationdb.FdbFuture
 import maryk.foundationdb.Transaction
 import maryk.foundationdb.fdbFutureFromSuspend
-import maryk.foundationdb.FDBException
 import maryk.foundationdb.tuple.Tuple
 
 actual open class DirectorySubspace internal constructor(
@@ -26,6 +26,6 @@ actual open class DirectorySubspace internal constructor(
         fdbFutureFromSuspend {
             val fullPath = this.path + path
             DirectoryStore.openDirectory(transaction, fullPath, layer)
-                ?: throw FDBException(2131, "Directory does not exist")
+                ?: throw FDBException("Directory does not exist", 2131)
         }
 }

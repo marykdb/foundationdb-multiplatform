@@ -1,6 +1,5 @@
 package maryk.foundationdb
 
-import java.util.ArrayList
 import java.util.concurrent.CompletableFuture
 
 internal actual fun ReadTransaction.collectRangeInternal(

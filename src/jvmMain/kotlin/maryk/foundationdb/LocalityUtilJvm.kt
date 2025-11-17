@@ -1,8 +1,7 @@
 package maryk.foundationdb
 
-import java.util.ArrayList
-import java.util.concurrent.CompletableFuture
 import maryk.foundationdb.async.CloseableAsyncIterator
+import java.util.concurrent.CompletableFuture
 
 internal actual fun getBoundaryKeysInternal(database: Database, begin: ByteArray, end: ByteArray): FdbFuture<List<ByteArray>> {
     val iterator = com.apple.foundationdb.LocalityUtil.getBoundaryKeys(database.delegate, begin, end)

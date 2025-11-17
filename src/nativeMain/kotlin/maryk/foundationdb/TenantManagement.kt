@@ -1,8 +1,8 @@
 package maryk.foundationdb
 
+import maryk.foundationdb.tuple.Tuple
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import maryk.foundationdb.tuple.Tuple
 
 private val TENANT_MAP_PREFIX = ByteArrayUtil.join(byteArrayOf(0xFF.toByte(), 0xFF.toByte()), "/management/tenant/map/".encodeToByteArray())
 
@@ -32,7 +32,7 @@ actual object TenantManagement {
                     val existing = tr.get(key).await()
                     checkedExistence.store(1)
                     if (existing != null) {
-                        throw FDBException(2132, "A tenant with the given name already exists")
+                        throw FDBException("A tenant with the given name already exists", 2132)
                     }
                     tr.set(key, ByteArray(0))
                 }
@@ -62,7 +62,7 @@ actual object TenantManagement {
                     val existing = tr.get(key).await()
                     checkedExistence.store(1)
                     if (existing == null) {
-                        throw FDBException(2131, "Tenant does not exist")
+                        throw FDBException("Tenant does not exist", 2131)
                     }
                     tr.clear(key)
                 }
