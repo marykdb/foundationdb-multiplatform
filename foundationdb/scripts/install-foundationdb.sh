@@ -17,7 +17,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BIN_DIR="$ROOT_DIR/foundationdb/bin"
 LIB_DIR="$BIN_DIR/lib"
 
-FDB_VERSION_DEFAULT="7.3.69"
+FDB_VERSION_DEFAULT="7.3.71"
 FDB_VERSION="${FDB_VERSION:-$FDB_VERSION_DEFAULT}"
 
 if [[ "${1:-}" == "--version" && -n "${2:-}" ]]; then

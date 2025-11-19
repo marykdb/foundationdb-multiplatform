@@ -27,6 +27,10 @@ actual class FDB private constructor() {
 
     actual fun setUnclosedWarning(enabled: Boolean) {}
 
+    actual fun shutdown() {
+        NativeEnvironment.shutdown()
+    }
+
     actual companion object {
         private val instance = FDB()
 

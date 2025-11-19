@@ -2,6 +2,7 @@ package maryk.foundationdb
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TransactionBehaviorTest {
@@ -37,5 +38,28 @@ class TransactionBehaviorTest {
             txn.get(key).await()?.decodeToString()
         }
         assertEquals("after-conflict", final)
+    }
+
+    @Test
+    fun `watch resolves when key is updated`() = harness.runAndReset {
+        val key = key("watch", "change")
+
+        // Ensure the key exists before installing the watch so we can mutate it later.
+        database.run { txn ->
+            txn.set(key, "initial".encodeToByteArray())
+        }
+
+        val watch = database.run { txn ->
+            txn.watch(key)
+        }
+
+        assertFalse(watch.isDone, "Watch should remain pending until the key changes")
+
+        database.run { txn ->
+            txn.set(key, "updated".encodeToByteArray())
+        }
+
+        watch.await()
+        assertTrue(watch.isDone, "Watch should complete after the key has been updated")
     }
 }

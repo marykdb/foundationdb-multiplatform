@@ -22,6 +22,7 @@ expect class Transaction : ReadTransaction, TransactionContext {
     fun getEstimatedRangeSizeBytes(range: Range): FdbFuture<Long>
     fun commit(): FdbFuture<Unit>
     fun onError(error: FDBException): FdbFuture<Unit>
+    fun watch(key: ByteArray): FdbFuture<Unit>
     fun close()
 }
 

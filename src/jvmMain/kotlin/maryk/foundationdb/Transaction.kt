@@ -54,6 +54,9 @@ actual class Transaction internal constructor(
     actual fun onError(error: FDBException): FdbFuture<Unit> =
         delegate.onError(error).thenApply { }.toFdbFuture()
 
+    actual fun watch(key: ByteArray): FdbFuture<Unit> =
+        delegate.watch(key).thenApply { }.toFdbFuture()
+
     actual fun close() {
         delegate.close()
     }

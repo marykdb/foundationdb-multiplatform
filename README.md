@@ -68,6 +68,13 @@ fun main() {
 Additional examples live in `src/commonTest/kotlin/maryk/foundationdb` and mirror all major FoundationDB features (tenants,
 range iterators, tuple decoding helpers, management API, etc.).
 
+### Tenant support (native)
+
+Native targets currently implement tenant management by talking directly to the special-key space (`/management/tenant/map`).
+This mirrors the legacy Java helper logic and works for creating/deleting/listing tenants, but it does **not** yet use the
+new `fdb_database_*` C APIs because those entrypoints are absent from the 7.3.71 headers we ship today. Treat tenant helpers
+on native as experimental until the upstream headers expose the official calls and we can wire them in.
+
 ## Development workflow
 
 - `./gradlew jvmTest` – installs a local FoundationDB server (macOS/Linux), starts it, and runs the JVM tests.

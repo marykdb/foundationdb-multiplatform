@@ -13,6 +13,10 @@ actual class FDB internal constructor(
         delegate.setUnclosedWarning(enabled)
     }
 
+    actual fun shutdown() {
+        delegate.stopNetwork()
+    }
+
     actual companion object {
         actual fun isAPIVersionSelected(): Boolean = com.apple.foundationdb.FDB.isAPIVersionSelected()
 

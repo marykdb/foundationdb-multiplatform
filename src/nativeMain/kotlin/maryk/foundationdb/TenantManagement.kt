@@ -4,7 +4,10 @@ import maryk.foundationdb.tuple.Tuple
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
-private val TENANT_MAP_PREFIX = ByteArrayUtil.join(byteArrayOf(0xFF.toByte(), 0xFF.toByte()), "/management/tenant/map/".encodeToByteArray())
+private val TENANT_MAP_PREFIX = ByteArrayUtil.join(
+    byteArrayOf(0xFF.toByte(), 0xFF.toByte()),
+    "/management/tenant/map/".encodeToByteArray()
+)
 
 @OptIn(ExperimentalAtomicApi::class)
 actual object TenantManagement {
@@ -83,7 +86,13 @@ actual object TenantManagement {
             database.read { tr ->
                 tr.options().setRawAccess()
                 tr.options().setLockAware()
-                val result = tr.collectRange(beginKey, endKey, limit, reverse = false, streamingMode = StreamingMode.WANT_ALL).awaitBlocking()
+                val result = tr.collectRange(
+                    beginKey,
+                    endKey,
+                    limit,
+                    reverse = false,
+                    streamingMode = StreamingMode.WANT_ALL
+                ).awaitBlocking()
                 result.values.map { kv ->
                     val tenantName = kv.key.copyOfRange(TENANT_MAP_PREFIX.size, kv.key.size)
                     KeyValue(tenantName, kv.value)

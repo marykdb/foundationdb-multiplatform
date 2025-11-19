@@ -5,6 +5,7 @@ expect class FDB {
     fun open(): Database
     fun open(clusterFilePath: String): Database
     fun setUnclosedWarning(enabled: Boolean)
+    fun shutdown()
 
     companion object {
         fun isAPIVersionSelected(): Boolean

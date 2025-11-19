@@ -22,7 +22,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-private val futureScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+private var supervisorJob = SupervisorJob()
+private var futureScope = CoroutineScope(supervisorJob + Dispatchers.Default)
 
 internal class NativeFuture<T>(
     private val pointer: CPointer<FDBFuture>,
@@ -93,3 +94,9 @@ internal actual fun <T> fdbFutureFromSuspend(block: suspend () -> T): FdbFuture<
 }
 
 internal fun <T> FdbFuture<T>.awaitBlocking(): T = runBlocking { await() }
+
+internal fun resetNativeFutureScope() {
+    supervisorJob.cancel()
+    supervisorJob = SupervisorJob()
+    futureScope = CoroutineScope(supervisorJob + Dispatchers.Default)
+}
