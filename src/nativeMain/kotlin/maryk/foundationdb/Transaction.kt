@@ -121,11 +121,57 @@ actual class Transaction internal constructor(pointer: CPointer<FDBTransaction>)
         fdb_transaction_destroy(pointer)
     }
 
-    actual override fun <T> run(block: (Transaction) -> T): T = block(this)
+    actual override fun <T> run(block: (Transaction) -> T): T =
+        executeBlocking(needsCommit = true) { block(this) }
 
-    actual override fun <T> runAsync(block: (Transaction) -> FdbFuture<T>): FdbFuture<T> = block(this)
+    actual override fun <T> runAsync(block: (Transaction) -> FdbFuture<T>): FdbFuture<T> =
+        executeAsync(needsCommit = true) { block(this).await() }
 
-    actual override fun <T> read(block: (ReadTransaction) -> T): T = block(this)
+    actual override fun <T> read(block: (ReadTransaction) -> T): T =
+        executeBlocking(needsCommit = false) { block(this) }
 
-    actual override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T> = block(this)
+    actual override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T> =
+        executeAsync(needsCommit = false) { block(this).await() }
+
+    private fun <T> executeBlocking(needsCommit: Boolean, block: () -> T): T {
+        while (true) {
+            try {
+                val result = block()
+                if (needsCommit) {
+                    commit().awaitBlocking()
+                }
+                return result
+            } catch (error: Throwable) {
+                if (!handleOnErrorBlocking(error)) throw error
+            }
+        }
+    }
+
+    private fun <T> executeAsync(needsCommit: Boolean, block: suspend () -> T): FdbFuture<T> =
+        fdbFutureFromSuspend {
+            while (true) {
+                try {
+                    val result = block()
+                    if (needsCommit) {
+                        commit().await()
+                    }
+                    return@fdbFutureFromSuspend result
+                } catch (error: Throwable) {
+                    if (!handleOnErrorSuspending(error)) throw error
+                }
+            }
+            error("unreachable")
+        }
+
+    private fun handleOnErrorBlocking(error: Throwable): Boolean {
+        if (error !is FDBException) return false
+        onError(error).awaitBlocking()
+        return true
+    }
+
+    private suspend fun handleOnErrorSuspending(error: Throwable): Boolean {
+        if (error !is FDBException) return false
+        onError(error).await()
+        return true
+    }
 }

@@ -9,7 +9,8 @@ internal actual fun ReadTransaction.collectRangeInternal(
     reverse: Boolean,
     streamingMode: StreamingMode
 ): FdbFuture<RangeResult> {
-    val iterable = delegate.getRange(begin, end, limit, reverse, streamingMode.toJava())
+    val requestedLimit = if (limit > 0) limit + 1 else limit
+    val iterable = delegate.getRange(begin, end, requestedLimit, reverse, streamingMode.toJava())
     return collectFromIterable(iterable, limit).toFdbFuture()
 }
 
@@ -20,7 +21,8 @@ internal actual fun ReadTransaction.collectRangeInternal(
     reverse: Boolean,
     streamingMode: StreamingMode
 ): FdbFuture<RangeResult> {
-    val iterable = delegate.getRange(begin.delegate, end.delegate, limit, reverse, streamingMode.toJava())
+    val requestedLimit = if (limit > 0) limit + 1 else limit
+    val iterable = delegate.getRange(begin.delegate, end.delegate, requestedLimit, reverse, streamingMode.toJava())
     return collectFromIterable(iterable, limit).toFdbFuture()
 }
 
@@ -31,11 +33,13 @@ private fun collectFromIterable(
     val iterator = iterable.iterator()
     val collected = ArrayList<com.apple.foundationdb.KeyValue>()
 
-    fun completeResult(hasMore: Boolean): RangeResult {
+    fun completeResult(hasMoreHint: Boolean): RangeResult {
         val kotlinValues = collected.map { KeyValue.fromDelegate(it) }
-        val lastKey = kotlinValues.lastOrNull()?.key
-        val summary = RangeResultSummary(lastKey, kotlinValues.size, hasMore)
-        return RangeResult(kotlinValues, summary)
+        val limitedValues = if (limit > 0) kotlinValues.take(limit) else kotlinValues
+        val lastKey = limitedValues.lastOrNull()?.key
+        val hasMore = hasMoreHint || (limit > 0 && kotlinValues.size > limitedValues.size)
+        val summary = RangeResultSummary(lastKey, limitedValues.size, hasMore)
+        return RangeResult(limitedValues, summary)
     }
 
     fun step(): CompletableFuture<RangeResult> {
@@ -82,9 +86,10 @@ internal actual fun ReadTransaction.collectMappedRangeInternal(
     reverse: Boolean,
     streamingMode: StreamingMode
 ): FdbFuture<MappedRangeResult> {
-    val iterable = delegate.getMappedRange(begin.delegate, end.delegate, mapper, limit, reverse, streamingMode.toJava())
+    val requestedLimit = if (limit > 0) limit + 1 else limit
+    val iterable = delegate.getMappedRange(begin.delegate, end.delegate, mapper, requestedLimit, reverse, streamingMode.toJava())
     return collectMappedFromIterable(iterable, limit).toFdbFuture()
-}
+    }
 
 private fun collectMappedFromIterable(
     iterable: com.apple.foundationdb.async.AsyncIterable<com.apple.foundationdb.MappedKeyValue>,
@@ -93,11 +98,13 @@ private fun collectMappedFromIterable(
     val iterator = iterable.iterator()
     val collected = ArrayList<com.apple.foundationdb.MappedKeyValue>()
 
-    fun completeResult(hasMore: Boolean): MappedRangeResult {
+    fun completeResult(hasMoreHint: Boolean): MappedRangeResult {
         val kotlinValues = collected.map { it.toKotlinMappedKeyValue() }
-        val lastKey = kotlinValues.lastOrNull()?.key
-        val summary = RangeResultSummary(lastKey, kotlinValues.size, hasMore)
-        return MappedRangeResult(kotlinValues, summary)
+        val limitedValues = if (limit > 0) kotlinValues.take(limit) else kotlinValues
+        val lastKey = limitedValues.lastOrNull()?.key
+        val hasMore = hasMoreHint || (limit > 0 && kotlinValues.size > limitedValues.size)
+        val summary = RangeResultSummary(lastKey, limitedValues.size, hasMore)
+        return MappedRangeResult(limitedValues, summary)
     }
 
     fun step(): CompletableFuture<MappedRangeResult> {

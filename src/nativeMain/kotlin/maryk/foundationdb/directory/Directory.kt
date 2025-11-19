@@ -77,11 +77,19 @@ actual class Directory(
         runWithReadContext(context) { rt ->
             DirectoryStore.exists(rt, path + subpath, layerData)
         }
+
     private fun <T> runWithTransactionContext(context: TransactionContext, block: suspend (Transaction) -> T): FdbFuture<T> =
-        context.runAsync { txn -> fdbFutureFromSuspend { block(txn) } }
+        when (context) {
+            is Transaction -> fdbFutureFromSuspend { block(context) }
+            else -> context.runAsync { txn -> fdbFutureFromSuspend { block(txn) } }
+        }
 
     private fun <T> runWithReadContext(context: ReadTransactionContext, block: suspend (ReadTransaction) -> T): FdbFuture<T> =
-        context.readAsync { rt -> fdbFutureFromSuspend { block(rt) } }
+        when (context) {
+            is ReadTransaction -> fdbFutureFromSuspend { block(context) }
+            is Transaction -> fdbFutureFromSuspend { block(context) }
+            else -> context.readAsync { rt -> fdbFutureFromSuspend { block(rt) } }
+        }
 
     private fun validateMovePaths(source: List<String>, dest: List<String>) {
         if (source == dest) {

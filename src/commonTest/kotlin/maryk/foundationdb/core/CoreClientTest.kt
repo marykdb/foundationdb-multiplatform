@@ -89,6 +89,40 @@ class CoreClientTest {
     }
 
     @Test
+    fun transactionContextRunCommitsWithoutManualCommit() = harness.runAndReset {
+        val key = key("core", "txn", "run")
+        val txn = database.createTransaction()
+
+        val result = txn.run {
+            it.set(key, "tx-run".encodeToByteArray())
+            99
+        }
+
+        assertEquals(99, result)
+        txn.close()
+
+        val stored = database.readSuspend { rt -> rt.get(key).await() }
+        assertEquals("tx-run", stored?.decodeToString())
+    }
+
+    @Test
+    fun transactionContextRunAsyncCommits() = harness.runAndReset {
+        val key = key("core", "txn", "runAsync")
+        val txn = database.createTransaction()
+
+        val future = txn.runAsync {
+            it.set(key, "tx-run-async".encodeToByteArray())
+            completedFdbFuture(7)
+        }
+
+        assertEquals(7, future.await())
+        txn.close()
+
+        val stored = database.readSuspend { rt -> rt.get(key).await() }
+        assertEquals("tx-run-async", stored?.decodeToString())
+    }
+
+    @Test
     fun runAsyncBridgeReturnsResult() = harness.runAndReset {
         val key = key("core", "async")
         val expected = "async-result"
@@ -122,6 +156,24 @@ class CoreClientTest {
             LocalityUtil.getAddressesForKey(txn, key("core", "locality", "k0")).await()
         }
         assertNotNull(addresses)
+    }
+
+    @Test
+    fun boundaryIteratorStreamsKeys() = harness.runAndReset {
+        val begin = key("core", "locality", "iter-A")
+        val end = key("core", "locality", "iter-Z")
+
+        database.runSuspend { txn ->
+            repeat(10) { idx ->
+                txn.set(key("core", "locality", "iter", idx.toString()), idx.toString().encodeToByteArray())
+            }
+        }
+
+        val iterator = LocalityUtil.openBoundaryKeysIterator(database, begin, end)
+        // Consume without explicitly closing; implementation should auto-close on exhaustion.
+        while (iterator.onHasNext().await()) {
+            iterator.next()
+        }
     }
 
     @Test

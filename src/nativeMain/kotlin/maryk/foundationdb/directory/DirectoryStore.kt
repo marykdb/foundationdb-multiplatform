@@ -119,9 +119,19 @@ internal object DirectoryStore {
         transaction.ensureDirectoryLayerVersion(layer)
         validateMovePaths(oldPath, newPath)
         val oldRange = rangeFor(oldPath, layer)
-        val entries = transaction.collectRange(oldRange.begin, oldRange.end, 0, reverse = false, streamingMode = StreamingMode.WANT_ALL).await().values
+        val entries = transaction.collectRange(
+            oldRange.begin,
+            oldRange.end,
+            0,
+            reverse = false,
+            streamingMode = StreamingMode.WANT_ALL
+        ).await().values
+        val metadataEntryKey = metadataKey(oldPath, layer)
+        val metadataEntry = entries.firstOrNull { it.key.contentEquals(metadataEntryKey) }
+            ?: throw DirectoryVersionException("Corrupt directory metadata at ${DirectoryUtil.pathStr(oldPath)}")
+        val metadata = decodeMetadata(metadataEntry.value, oldPath)
+
         transaction.clear(oldRange.begin, oldRange.end)
-        val newSubspace = ensureDirectory(transaction, newPath, layer)
         entries.forEach { kv ->
             val relative = kv.key.copyOfRange(rangePrefixLength(oldPath, layer), kv.key.size)
             val newKey = ByteArrayUtil.join(metadataKey(newPath, layer), relative)
@@ -129,7 +139,7 @@ internal object DirectoryStore {
         }
         unregisterChild(transaction, oldPath, layer)
         registerChild(transaction, newPath, layer)
-        return newSubspace
+        return DirectorySubspace(metadata.prefix, newPath, metadata.layer)
     }
 
     private fun rangeFor(path: List<String>, layer: ByteArray): Range {

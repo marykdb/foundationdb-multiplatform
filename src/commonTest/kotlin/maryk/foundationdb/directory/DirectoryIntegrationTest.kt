@@ -1,6 +1,7 @@
 package maryk.foundationdb.directory
 
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -172,5 +173,38 @@ class DirectoryIntegrationTest {
                 directory.move(txn, sourcePath, nestedDest).await()
             }
         }
+    }
+
+    @Test
+    fun movePreservesDirectoryPrefix() = harness.runAndReset {
+        val layer = DirectoryLayer.getDefault()
+        val directory = layer.testDirectoryOrNull() ?: return@runAndReset
+        val sourcePath = listOf(namespace, "move", "prefix", "src")
+        val destPath = listOf(namespace, "move", "prefix", "dst")
+
+        val created = database.runSuspend { txn ->
+            directory.create(txn, sourcePath).await()
+        }
+        val recordKey = created.pack(Tuple.from("existing"))
+        database.runSuspend { txn ->
+            txn.set(recordKey, "before".encodeToByteArray())
+        }
+
+        val moved = database.runSuspend { txn ->
+            directory.move(txn, sourcePath, destPath).await()
+        }
+
+        val reopened = directory.open(database, destPath).await()
+        assertContentEquals(reopened.pack(), moved.pack())
+
+        val existing = database.readSuspend { rt -> rt.get(reopened.pack(Tuple.from("existing"))).await() }
+        assertEquals("before", existing?.decodeToString())
+
+        database.runSuspend { txn ->
+            txn.set(moved.pack(Tuple.from("after")), "after".encodeToByteArray())
+        }
+
+        val after = database.readSuspend { rt -> rt.get(reopened.pack(Tuple.from("after"))).await() }
+        assertEquals("after", after?.decodeToString())
     }
 }

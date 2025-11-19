@@ -2,6 +2,7 @@
 
 package maryk.foundationdb
 
+import maryk.foundationdb.async.AsyncIterator
 import maryk.foundationdb.async.CloseableAsyncIterator
 
 import foundationdb.c.fdb_future_get_string_array
@@ -104,18 +105,60 @@ internal actual fun openBoundaryKeysIteratorInternal(
     database: Database,
     begin: ByteArray,
     end: ByteArray
-): CloseableAsyncIterator<ByteArray> =
-    CloseableAsyncIterator(
-        getBoundaryKeysInternal(database, begin, end).awaitBlocking(),
-        closeAction = {}
-    )
+): CloseableAsyncIterator<ByteArray> {
+    val transaction = database.createTransaction()
+    return try {
+        boundaryKeyIterator(transaction, begin, end) {
+            transaction.close()
+        }
+    } catch (t: Throwable) {
+        transaction.close()
+        throw t
+    }
+}
 
 internal actual fun openBoundaryKeysIteratorInternal(
     transaction: Transaction,
     begin: ByteArray,
     end: ByteArray
 ): CloseableAsyncIterator<ByteArray> =
-    CloseableAsyncIterator(
-        getBoundaryKeysInternal(transaction, begin, end).awaitBlocking(),
-        closeAction = {}
+    boundaryKeyIterator(transaction, begin, end) {}
+
+private fun boundaryKeyIterator(
+    transaction: Transaction,
+    begin: ByteArray,
+    end: ByteArray,
+    closeAction: () -> Unit
+): CloseableAsyncIterator<ByteArray> {
+    transaction.options().setReadSystemKeys()
+    transaction.options().setLockAware()
+
+    val beginSelector = KeySelector.firstGreaterOrEqual(keyServersKey(begin))
+    val endSelector = KeySelector.firstGreaterOrEqual(keyServersKey(end))
+    val iterable = transaction.getRange(
+        beginSelector,
+        endSelector,
+        ReadTransaction.ROW_LIMIT_UNLIMITED,
+        reverse = false,
+        streamingMode = StreamingMode.WANT_ALL
     )
+    val prefixLength = KEY_SERVERS_PREFIX.size
+    val kvIterator = iterable.iterator()
+
+    val delegate = object : AsyncIterator<ByteArray>() {
+        override fun hasNext(): Boolean = kvIterator.hasNext()
+
+        override suspend fun next(): ByteArray {
+            val kv = kvIterator.next()
+            return kv.key.copyOfRange(prefixLength, kv.key.size)
+        }
+
+        override fun onHasNext() = kvIterator.onHasNext()
+
+        override fun cancel() {
+            kvIterator.cancel()
+        }
+    }
+
+    return CloseableAsyncIterator(delegate, closeAction)
+}

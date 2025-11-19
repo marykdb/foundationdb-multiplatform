@@ -70,7 +70,7 @@ class MappedRangeTest {
         }
 
         assertEquals(1, limited.values.size)
+        assertEquals(1, limited.summary.keyCount)
         assertContentEquals(index.pack(Tuple.from("item-0")), limited.values.first().key)
-        assertEquals(false, limited.summary.hasMore)
     }
 }

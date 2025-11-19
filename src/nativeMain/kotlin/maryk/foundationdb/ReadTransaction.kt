@@ -571,12 +571,9 @@ private suspend fun ReadTransaction.collectMappedRangeResult(
         iteration++
     }
 
-    val truncated = limit > 0 && items.size >= limit
-    val hasMore = if (truncated) false else lastPageHasMore
-
     return MappedRangeResult(
         values = items,
-        summary = RangeResultSummary(lastKey, items.size, hasMore)
+        summary = RangeResultSummary(lastKey, items.size, lastPageHasMore)
     )
 }
 

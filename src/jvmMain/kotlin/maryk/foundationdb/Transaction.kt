@@ -61,11 +61,40 @@ actual class Transaction internal constructor(
         delegate.close()
     }
 
-    actual override fun <T> run(block: (Transaction) -> T): T =
-        delegate.run { txn -> block(Transaction(txn)) }
+    actual override fun <T> run(block: (Transaction) -> T): T {
+        while (true) {
+            try {
+                val result = block(this)
+                delegate.commit().join()
+                return result
+            } catch (t: Throwable) {
+                if (t is FDBException) {
+                    delegate.onError(t).join()
+                } else {
+                    throw t
+                }
+            }
+        }
+    }
 
     actual override fun <T> runAsync(block: (Transaction) -> FdbFuture<T>): FdbFuture<T> =
-        delegate.runAsync { txn -> block(Transaction(txn)).asCompletableFuture() }.toFdbFuture()
+        fdbFutureFromSuspend {
+            while (true) {
+                try {
+                    val result = block(this@Transaction).await()
+                    commit().await()
+                    return@fdbFutureFromSuspend result
+                } catch (t: Throwable) {
+                    if (t is FDBException) {
+                        onError(t).await()
+                    } else {
+                        throw t
+                    }
+                }
+            }
+            @Suppress("KotlinUnreachableCode")
+            error("unreachable")
+        }
 
     actual override fun <T> read(block: (ReadTransaction) -> T): T =
         delegate.read { rt -> block(ReadTransaction(rt)) }
