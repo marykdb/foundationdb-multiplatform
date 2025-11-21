@@ -1,19 +1,16 @@
-import java.net.URI
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-import org.gradle.api.tasks.testing.Test
+
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+import java.net.URI
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 plugins {
     kotlin("multiplatform") version "2.2.10"
     id("com.vanniktech.maven.publish") version "0.34.0"
     id("org.jetbrains.kotlinx.kover") version "0.8.0"
 }
-
-group = "io.maryk.foundationdb"
-version = "0.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -26,6 +23,9 @@ val foundationDbVersion = "7.3.71"
 val foundationDbNativeDir = layout.buildDirectory.dir("foundationdb")
 val foundationDbApiVersion = 730
 val foundationDbReleaseBranch = "release-${foundationDbVersion.substringBeforeLast('.')}"
+
+group = "io.maryk.foundationdb"
+version = foundationDbVersion
 
 extensions.extraProperties["foundationDbVersion"] = foundationDbVersion
 extensions.extraProperties["foundationDbNativeDir"] = foundationDbNativeDir
