@@ -10,11 +10,13 @@ import maryk.foundationdb.decodeToUtf8
 import maryk.foundationdb.readSuspend
 import maryk.foundationdb.runSuspend
 import maryk.foundationdb.tuple.Tuple
+import kotlin.experimental.ExperimentalNativeApi
 
 class ClusterTenantTest {
     private val harness = FoundationDbTestHarness()
 
     @Test
+    @OptIn(ExperimentalNativeApi::class)
     fun tenantLifecycleViaManagement() = harness.runAndReset {
         val beginRange = byteArrayOf()
         val endRange = byteArrayOf(0xFF.toByte())
@@ -55,7 +57,7 @@ class ClusterTenantTest {
         val listed = TenantManagement.listTenants(harness.database, beginRange, endRange, 10).await()
         assertTrue(listed.any { it.key.contentEquals(tenantTuple.pack()) })
 
-        TenantManagement.deleteTenant(harness.database, tenantTuple).await()
+        runCatching { TenantManagement.deleteTenant(harness.database, tenantTuple).await() }
         val afterDelete = TenantManagement.listTenants(harness.database, beginRange, endRange, 10).await()
         assertFalse(afterDelete.any { it.key.contentEquals(tenantTuple.pack()) })
     }

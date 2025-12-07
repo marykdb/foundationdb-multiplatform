@@ -1,106 +1,93 @@
 package maryk.foundationdb
 
 import maryk.foundationdb.tuple.Tuple
-import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
-private val TENANT_MAP_PREFIX = ByteArrayUtil.join(
+// Special key prefix for tenant management (see FDB special key docs)
+private val TENANT_MANAGEMENT_PREFIX = ByteArrayUtil.join(
     byteArrayOf(0xFF.toByte(), 0xFF.toByte()),
     "/management/tenant/map/".encodeToByteArray()
 )
 
 @OptIn(ExperimentalAtomicApi::class)
 actual object TenantManagement {
-    private fun tenantKey(name: ByteArray): ByteArray = ByteArrayUtil.join(TENANT_MAP_PREFIX, name)
+    private fun managementKey(name: ByteArray): ByteArray = ByteArrayUtil.join(TENANT_MANAGEMENT_PREFIX, name)
+
+    private fun Transaction.enableTenantOptions() {
+        options().setSpecialKeySpaceEnableWrites()
+        options().setRawAccess()
+        options().setLockAware()
+        options().setSpecialKeySpaceRelaxed()
+    }
 
     actual fun createTenant(transaction: Transaction, tenantName: ByteArray) {
-        transaction.options().setSpecialKeySpaceEnableWrites()
-        transaction.set(tenantKey(tenantName), ByteArray(0))
+        transaction.enableTenantOptions()
+        val key = managementKey(tenantName)
+        val value = tenantJsonValue(tenantName)
+        transaction.set(key, value)
     }
 
-    actual fun createTenant(transaction: Transaction, tenantName: Tuple) {
+    actual fun createTenant(transaction: Transaction, tenantName: Tuple) =
         createTenant(transaction, tenantName.pack())
-    }
 
-    actual fun createTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> {
-        val checkedExistence = AtomicInt(0)
-        val key = tenantKey(tenantName)
-        return database.runAsync { tr ->
-            tr.options().setSpecialKeySpaceEnableWrites()
-            if (checkedExistence.load() != 0) {
-                tr.set(key, ByteArray(0))
-                completedFdbFuture(Unit)
-            } else {
-                fdbFutureFromSuspend {
-                    val existing = tr.get(key).await()
-                    checkedExistence.store(1)
-                    if (existing != null) {
-                        throw FDBException("A tenant with the given name already exists", 2132)
-                    }
-                    tr.set(key, ByteArray(0))
-                }
+    actual fun createTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> =
+        database.runAsync { tr ->
+            tr.enableTenantOptions()
+            fdbFutureFromSuspend {
+                tr.set(managementKey(tenantName), tenantJsonValue(tenantName))
             }
         }
-    }
 
     actual fun createTenant(database: Database, tenantName: Tuple): FdbFuture<Unit> =
         createTenant(database, tenantName.pack())
 
     actual fun deleteTenant(transaction: Transaction, tenantName: ByteArray) {
-        transaction.options().setSpecialKeySpaceEnableWrites()
-        transaction.clear(tenantKey(tenantName))
+        transaction.enableTenantOptions()
+        transaction.clear(managementKey(tenantName))
     }
 
-    actual fun deleteTenant(transaction: Transaction, tenantName: Tuple) {
+    actual fun deleteTenant(transaction: Transaction, tenantName: Tuple) =
         deleteTenant(transaction, tenantName.pack())
-    }
 
-    actual fun deleteTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> {
-        val checkedExistence = AtomicInt(0)
-        val key = tenantKey(tenantName)
-        return database.runAsync { tr ->
-            tr.options().setSpecialKeySpaceEnableWrites()
-            if (checkedExistence.load() == 0) {
-                fdbFutureFromSuspend {
-                    val existing = tr.get(key).await()
-                    checkedExistence.store(1)
-                    if (existing == null) {
-                        throw FDBException("Tenant does not exist", 2131)
-                    }
-                    tr.clear(key)
-                }
-            } else {
-                tr.clear(key)
-                completedFdbFuture(Unit)
+    actual fun deleteTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> =
+        database.runAsync { tr ->
+            tr.enableTenantOptions()
+            fdbFutureFromSuspend {
+                tr.clear(managementKey(tenantName))
             }
         }
-    }
 
     actual fun deleteTenant(database: Database, tenantName: Tuple): FdbFuture<Unit> =
         deleteTenant(database, tenantName.pack())
 
-    actual fun listTenants(database: Database, begin: ByteArray, end: ByteArray, limit: Int): FdbFuture<List<KeyValue>> {
-        val beginKey = tenantKey(begin)
-        val endKey = tenantKey(end)
-        return fdbFutureFromSuspend {
-            database.read { tr ->
-                tr.options().setRawAccess()
-                tr.options().setLockAware()
-                val result = tr.collectRange(
+    actual fun listTenants(database: Database, begin: ByteArray, end: ByteArray, limit: Int): FdbFuture<List<KeyValue>> =
+        database.runAsync { tr ->
+            tr.options().setRawAccess()
+            tr.options().setLockAware()
+            tr.options().setSpecialKeySpaceRelaxed()
+            fdbFutureFromSuspend {
+                val beginKey = managementKey(begin)
+                val endKey = managementKey(end)
+                val slice = tr.collectRange(
                     beginKey,
                     endKey,
                     limit,
                     reverse = false,
                     streamingMode = StreamingMode.WANT_ALL
-                ).awaitBlocking()
-                result.values.map { kv ->
-                    val tenantName = kv.key.copyOfRange(TENANT_MAP_PREFIX.size, kv.key.size)
-                    KeyValue(tenantName, kv.value)
+                ).await()
+                slice.values.map { kv ->
+                    val name = kv.key.copyOfRange(TENANT_MANAGEMENT_PREFIX.size, kv.key.size)
+                    KeyValue(name, kv.value)
                 }
             }
         }
-    }
 
     actual fun listTenants(database: Database, begin: Tuple, end: Tuple, limit: Int): FdbFuture<List<KeyValue>> =
         listTenants(database, begin.pack(), end.pack(), limit)
+
+    private fun tenantJsonValue(name: ByteArray): ByteArray {
+        val nameStr = name.decodeToString()
+        val json = """{"tenant_name":"$nameStr"}"""
+        return json.encodeToByteArray()
+    }
 }

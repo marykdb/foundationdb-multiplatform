@@ -70,10 +70,9 @@ range iterators, tuple decoding helpers, management API, etc.).
 
 ### Tenant support (native)
 
-Native targets currently implement tenant management by talking directly to the special-key space (`/management/tenant/map`).
-This mirrors the legacy Java helper logic and works for creating/deleting/listing tenants, but it does **not** yet use the
-new `fdb_database_*` C APIs because those entrypoints are absent from the 7.3.71 headers we ship today. Treat tenant helpers
-on native as experimental until the upstream headers expose the official calls and we can wire them in.
+Native targets open tenants through `fdb_database_open_tenant`, but create/delete/list still go through the special-key
+space at `/management/tenant/map` because the 7.3.71 C client does not expose tenant management calls. The helper API
+matches the JVM behavior and is kept in sync with FoundationDB 7.3.x semantics.
 
 ## Development workflow
 

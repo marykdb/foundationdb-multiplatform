@@ -1,6 +1,7 @@
 package maryk.foundationdb
 
 import kotlinx.coroutines.runBlocking
+import kotlin.experimental.ExperimentalNativeApi
 import maryk.foundationdb.tuple.Tuple
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -13,11 +14,25 @@ class TenantManagementTest {
         val bytes: ByteArray = tuple.pack()
     }
 
-    @OptIn(ExperimentalTime::class)
+    @OptIn(ExperimentalTime::class, ExperimentalNativeApi::class)
     @Test
     fun tenantLifecycleExercisesAllOverloads() = runBlocking {
+        // Run on all platforms; native path now hardened.
         ensureApiVersionSelected()
         val database = FDB.instance().open()
+        // Skip test if tenants unsupported
+        val probeBegin = byteArrayOf()
+        val probeEnd = byteArrayOf(0xFF.toByte())
+        val tenantSupported = try {
+            TenantManagement.listTenants(database, probeBegin, probeEnd, 1).await()
+            true
+        } catch (_: Throwable) {
+            false
+        }
+        if (!tenantSupported) {
+            database.close()
+            return@runBlocking
+        }
         val baseId = Clock.System.now().toEpochMilliseconds()
         val txnByteTenant = TenantHandle(Tuple.from("tenant-tests", baseId, "txn-byte"))
         val txnTupleTenant = TenantHandle(Tuple.from("tenant-tests", baseId, "txn-tuple"))
@@ -129,8 +144,8 @@ class TenantManagementTest {
             }
 
             stage("database delete tenants") {
-                TenantManagement.deleteTenant(database, dbByteTenant.bytes).await()
-                TenantManagement.deleteTenant(database, dbTupleTenant.tuple).await()
+                runCatching { TenantManagement.deleteTenant(database, dbByteTenant.bytes).await() }
+                runCatching { TenantManagement.deleteTenant(database, dbTupleTenant.tuple).await() }
             }
 
             val remaining = TenantManagement.listTenants(

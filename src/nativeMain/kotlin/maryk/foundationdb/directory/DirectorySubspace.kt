@@ -8,24 +8,25 @@ import maryk.foundationdb.fdbFutureFromSuspend
 import maryk.foundationdb.tuple.Tuple
 
 actual open class DirectorySubspace internal constructor(
-    private val prefix: ByteArray,
+    protected open val prefix: ByteArray,
     private val path: List<String>,
-    private val layer: ByteArray
+    private val layer: ByteArray,
+    private val context: DirectoryContext = DirectoryContext.default()
 ) {
     actual fun pack(): ByteArray = prefix
 
     actual fun pack(tuple: Tuple): ByteArray = ByteArrayUtil.join(prefix, tuple.pack())
 
-    actual fun createOrOpen(transaction: Transaction, path: List<String>): FdbFuture<DirectorySubspace> =
+    open actual fun createOrOpen(transaction: Transaction, path: List<String>): FdbFuture<DirectorySubspace> =
         fdbFutureFromSuspend {
             val fullPath = this.path + path
-            DirectoryStore.ensureDirectory(transaction, fullPath, layer)
+            DirectoryStore.ensureDirectory(transaction, fullPath, layer, context)
         }
 
-    actual fun open(transaction: Transaction, path: List<String>): FdbFuture<DirectorySubspace> =
+    open actual fun open(transaction: Transaction, path: List<String>): FdbFuture<DirectorySubspace> =
         fdbFutureFromSuspend {
             val fullPath = this.path + path
-            DirectoryStore.openDirectory(transaction, fullPath, layer)
+            DirectoryStore.openDirectory(transaction, fullPath, layer, context)
                 ?: throw FDBException("Directory does not exist", 2131)
         }
 }
