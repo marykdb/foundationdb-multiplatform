@@ -16,10 +16,11 @@ internal object DirectoryStore {
         0, 0, 0, 0  // patch
     )
 
+    // Matches stored metadata: child pointers are at tuple (0, name)
     private const val SUB_DIR_KEY = 0
-    private const val VERSION_KEY = "version"
-    private const val LAYER_KEY = "layer"
-    private const val HCA_KEY = "hca"
+    private val VERSION_KEY = "version".encodeToByteArray()
+    private val LAYER_KEY = "layer".encodeToByteArray()
+    private val HCA_KEY = "hca".encodeToByteArray()
     private val PARTITION_LAYER = "partition".encodeToByteArray()
 
     private data class Node(
@@ -61,13 +62,7 @@ internal object DirectoryStore {
         return true
     }
 
-    suspend fun exists(transaction: Transaction, path: List<String>, layer: ByteArray, context: DirectoryContext): Boolean {
-        verifyVersion(transaction, writeAccess = true, context = context)
-        val node = find(transaction, path, context)
-        return node.exists
-    }
-
-    suspend fun remove(transaction: Transaction, path: List<String>, layer: ByteArray, context: DirectoryContext): Boolean {
+    suspend fun remove(transaction: Transaction, path: List<String>, context: DirectoryContext): Boolean {
         verifyVersion(transaction, writeAccess = true, context = context)
         if (path.isEmpty()) throw DirectoryVersionException("Cannot remove root directory")
         val node = find(transaction, path, context)
@@ -77,7 +72,7 @@ internal object DirectoryStore {
         return true
     }
 
-    suspend fun listChildren(readTransaction: ReadTransaction, path: List<String>, layer: ByteArray, limit: Int, context: DirectoryContext): List<String> {
+    suspend fun listChildren(readTransaction: ReadTransaction, path: List<String>, limit: Int, context: DirectoryContext): List<String> {
         verifyVersion(readTransaction, writeAccess = false, context = context)
         val node = find(readTransaction, path, context)
         if (!node.exists) throw NoSuchDirectoryException(path)
@@ -87,7 +82,7 @@ internal object DirectoryStore {
         return result.values.map { kv -> subdir.unpack(kv.key).getString(0) }
     }
 
-    suspend fun move(transaction: Transaction, oldPath: List<String>, newPath: List<String>, layer: ByteArray, context: DirectoryContext): DirectorySubspace {
+    suspend fun move(transaction: Transaction, oldPath: List<String>, newPath: List<String>, context: DirectoryContext): DirectorySubspace {
         verifyVersion(transaction, writeAccess = true, context = context)
         if (newPath.isEmpty()) throw DirectoryMoveException(oldPath, newPath, "Cannot move to root")
         if (oldPath == newPath) throw DirectoryMoveException(oldPath, newPath, "Source and destination must differ")
@@ -142,7 +137,7 @@ internal object DirectoryStore {
 
         val parentNode = ensureParent(transaction, path, context)
         val prefix = prefixOverride ?: allocatePrefix(transaction, context)
-        if (!isPrefixFree(transaction, prefix, snapshot = prefixOverride == null, context = context)) {
+        if (!isPrefixFree(transaction, prefix, context = context)) {
             throw DirectoryVersionException("Directory prefix not free")
         }
         ensurePrefixEmpty(transaction, prefix)
@@ -181,7 +176,7 @@ internal object DirectoryStore {
                 return Node(subspace = null, path = currentPath, exists = false)
             }
             val childNode = nodeWithPrefix(childPrefix, context)
-            val loaded = loadMetadata(readTransaction, childNode, currentPath, context)
+            val loaded = loadMetadata(readTransaction, childNode, currentPath)
             if (!loaded.exists) return loaded
             node = loaded
             index++
@@ -189,9 +184,11 @@ internal object DirectoryStore {
         return node
     }
 
-    private suspend fun loadMetadata(readTransaction: ReadTransaction, subspace: Subspace, path: List<String>, context: DirectoryContext): Node {
-        val layerBytes = readTransaction.get(subspace.pack(LAYER_KEY)).await() ?: return Node(subspace, path, byteArrayOf(), false)
-        return Node(subspace, path, layerBytes, true)
+    private suspend fun loadMetadata(readTransaction: ReadTransaction, subspace: Subspace, path: List<String>): Node {
+        val layerKey = subspace.pack(LAYER_KEY)
+        val layerBytes = readTransaction.get(layerKey).await()
+        // Treat missing layer key as existing with empty layer (older writers sometimes omitted it)
+        return Node(subspace, path, layerBytes ?: byteArrayOf(), true)
     }
 
     private suspend fun removeRecursive(transaction: Transaction, nodeSubspace: Subspace, context: DirectoryContext) {
@@ -231,12 +228,8 @@ internal object DirectoryStore {
     private fun runBlockingGet(transaction: Transaction, key: ByteArray): ByteArray? =
         transaction.get(key).awaitBlocking()
 
-    private fun dataPrefix(nodeSubspace: Subspace, context: DirectoryContext): ByteArray {
-        val tuple = context.nodeSubspace.unpack(nodeSubspace.getKey())
-        val prefix = tuple.items.getOrNull(0) as? ByteArray
-            ?: throw DirectoryVersionException("Corrupt directory metadata")
-        return prefix
-    }
+    private fun dataPrefix(nodeSubspace: Subspace, context: DirectoryContext): ByteArray =
+        context.nodeSubspace.unpack(nodeSubspace.getKey()).getBytes(0)
 
     private fun validateLayer(stored: ByteArray, requested: ByteArray, path: List<String>) {
         if (stored.isEmpty() || requested.isEmpty()) return
@@ -270,12 +263,12 @@ internal object DirectoryStore {
         }
     }
 
-    private suspend fun isPrefixFree(transaction: Transaction, prefix: ByteArray, snapshot: Boolean, context: DirectoryContext): Boolean {
+    private suspend fun isPrefixFree(transaction: Transaction, prefix: ByteArray, context: DirectoryContext): Boolean {
         if (prefix.isEmpty()) return false
         // prefix cannot overlap the directory metadata subspace
         if (prefix.startsWith(context.nodeSubspace.getKey())) return false
 
-        val containingNode = nodeContainingKey(transaction, prefix, snapshot, context)
+        val containingNode = nodeContainingKey(transaction, prefix, context)
         if (containingNode != null) return false
         val begin = context.nodeSubspace.pack(prefix)
         val end = context.nodeSubspace.pack(prefix.nextKey())
@@ -283,7 +276,7 @@ internal object DirectoryStore {
         return overlaps.values.isEmpty()
     }
 
-    private suspend fun nodeContainingKey(readTransaction: ReadTransaction, key: ByteArray, snapshot: Boolean, context: DirectoryContext): Subspace? {
+    private suspend fun nodeContainingKey(readTransaction: ReadTransaction, key: ByteArray, context: DirectoryContext): Subspace? {
         if (key.startsWith(context.nodeSubspace.getKey())) {
             return rootNode(context)
         }
@@ -299,7 +292,7 @@ internal object DirectoryStore {
     }
 
     private fun rootNode(context: DirectoryContext): Subspace =
-        context.nodeSubspace.get(context.nodeSubspace.getKey())
+        nodeWithPrefix(context.nodeSubspace.getKey(), context)
 
     private fun buildDirectorySubspace(node: Node, context: DirectoryContext): DirectorySubspace {
         val prefix = dataPrefix(node.subspace!!, context)

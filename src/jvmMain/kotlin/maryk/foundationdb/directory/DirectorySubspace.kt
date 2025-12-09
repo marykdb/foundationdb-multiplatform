@@ -8,6 +8,12 @@ import maryk.foundationdb.tuple.Tuple
 actual open class DirectorySubspace internal constructor(
     internal val delegate: com.apple.foundationdb.directory.DirectorySubspace
 ) {
+    actual val path: List<String>
+        get() = delegate.path
+
+    actual val layer: ByteArray
+        get() = delegate.layer
+
     actual fun pack(): ByteArray = delegate.pack()
 
     actual fun pack(tuple: Tuple): ByteArray = delegate.pack(tuple.delegate)
@@ -22,3 +28,5 @@ actual open class DirectorySubspace internal constructor(
             .thenApply(::DirectorySubspace)
             .toFdbFuture()
 }
+
+actual fun DirectorySubspace.asDirectory(): Directory = Directory(delegate)

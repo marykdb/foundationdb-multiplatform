@@ -32,4 +32,20 @@ class DirectoryPartitionInteropTest {
         assertNotNull(childEntry)
         assertFalse(childEntry.contentEquals(Tuple.from(namespace, "partition", "child").pack()))
     }
+
+    @Test
+    fun partitionChildPointerLivesInsidePartitionNodeSubspace() = harness.runAndReset {
+        val directoryRoot = DirectoryLayer.getDefault().testDirectoryOrNull() ?: return@runAndReset
+        val partition = directoryRoot.createOrOpen(database, listOf(namespace, "partition"), "partition".encodeToByteArray()).await()
+        val child = database.runSuspend { txn -> partition.createOrOpen(txn, listOf("child")).await() }
+        assertTrue(child.pack().isNotEmpty())
+
+        val partitionPrefix = kotlin.runCatching { partition.testRawPrefix() }.getOrNull() ?: return@runAndReset
+        val nodeSubspace = Subspace(byteArrayOf(0xFE.toByte())).get(partitionPrefix)
+        val rootNode = nodeSubspace.get(nodeSubspace.getKey())
+        val subdirMap = rootNode.get(0)
+
+        val childPointer = database.readSuspend { rt -> rt.get(subdirMap.pack("child")).await() }
+        assertNotNull(childPointer, "child pointer must be stored inside partition's node subspace")
+    }
 }

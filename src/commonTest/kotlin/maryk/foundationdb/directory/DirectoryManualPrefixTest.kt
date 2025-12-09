@@ -23,7 +23,10 @@ class DirectoryManualPrefixTest {
 
     @Test
     fun manualPrefixAllowedWhenEnabled() = harness.runAndReset {
-        val layer = DirectoryLayer.from(Subspace(byteArrayOf(0xFE.toByte())), Subspace(), allowManualPrefixes = true)
+        // Use a namespaced directory layer so manual prefixes don't leak into the shared default layer
+        val nodeSubspace = Subspace(harness.prefixBytes("directory", "manual", "nodes"))
+        val contentSubspace = Subspace(harness.prefixBytes("directory", "manual", "content"))
+        val layer = DirectoryLayer.from(nodeSubspace, contentSubspace, allowManualPrefixes = true)
         val path = listOf(namespace, "manual", "ok")
         val customPrefix = byteArrayOf(0x19, 0x02)
 

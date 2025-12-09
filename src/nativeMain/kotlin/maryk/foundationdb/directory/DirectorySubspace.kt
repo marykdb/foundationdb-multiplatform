@@ -9,8 +9,8 @@ import maryk.foundationdb.tuple.Tuple
 
 actual open class DirectorySubspace internal constructor(
     protected open val prefix: ByteArray,
-    private val path: List<String>,
-    private val layer: ByteArray,
+    actual val path: List<String>,
+    actual val layer: ByteArray,
     private val context: DirectoryContext = DirectoryContext.default()
 ) {
     actual fun pack(): ByteArray = prefix
@@ -29,4 +29,8 @@ actual open class DirectorySubspace internal constructor(
             DirectoryStore.openDirectory(transaction, fullPath, layer, context)
                 ?: throw FDBException("Directory does not exist", 2131)
         }
+
 }
+
+actual fun DirectorySubspace.asDirectory(): Directory =
+    Directory(path = this.path, layer = this.layer)

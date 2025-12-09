@@ -207,4 +207,32 @@ class DirectoryIntegrationTest {
         val after = database.readSuspend { rt -> rt.get(reopened.pack(Tuple.from("after"))).await() }
         assertEquals("after", after?.decodeToString())
     }
+
+    @Test
+    fun moveToMovesDirectoryAndKeepsData() = harness.runAndReset {
+        val layer = DirectoryLayer.getDefault()
+        val root = layer.testDirectoryOrNull() ?: return@runAndReset
+        val sourcePath = listOf(namespace, "moveTo", "src")
+        val destPath = listOf(namespace, "moveTo", "dst")
+
+        val createdSubspace = database.runSuspend { txn ->
+            root.create(txn, sourcePath).await()
+        }
+        val dir = createdSubspace.asDirectory()
+        // seed data under the source directory
+        val dataKey = createdSubspace.pack(Tuple.from("key"))
+        database.runSuspend { txn -> txn.set(dataKey, "value".encodeToByteArray()) }
+
+        // move the directory using Directory.moveTo
+        val moved = dir.moveTo(database, destPath).await()
+
+        // old path gone, new path present
+        assertFalse(root.exists(database, sourcePath).await())
+        val reopened = root.open(database, destPath).await()
+        assertContentEquals(moved.pack(), reopened.pack())
+
+        // data preserved at new location
+        val movedValue = database.readSuspend { rt -> rt.get(reopened.pack(Tuple.from("key"))).await() }
+        assertEquals("value", movedValue?.decodeToString())
+    }
 }

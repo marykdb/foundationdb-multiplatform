@@ -40,7 +40,7 @@ actual class Directory(
             validateMovePaths(path, newPath)
             if (!DirectoryStore.exists(tr, path, layerData, this.context)) throw NoSuchDirectoryException(path)
             if (DirectoryStore.exists(tr, newPath, layerData, this.context)) throw DirectoryAlreadyExistsException(newPath)
-            DirectoryStore.move(tr, path, newPath, layerData, this.context)
+            DirectoryStore.move(tr, path, newPath, this.context)
         }
 
     actual fun move(
@@ -54,24 +54,24 @@ actual class Directory(
             validateMovePaths(source, dest)
             if (!DirectoryStore.exists(tr, source, layerData, this.context)) throw NoSuchDirectoryException(source)
             if (DirectoryStore.exists(tr, dest, layerData, this.context)) throw DirectoryAlreadyExistsException(dest)
-            DirectoryStore.move(tr, source, dest, layerData, this.context)
+            DirectoryStore.move(tr, source, dest, this.context)
         }
 
     actual fun remove(context: TransactionContext, subpath: List<String>): FdbFuture<Unit> =
         runWithTransactionContext(context) { tr ->
-            if (!DirectoryStore.remove(tr, path + subpath, layerData, this.context)) {
+            if (!DirectoryStore.remove(tr, path + subpath, this.context)) {
                 throw NoSuchDirectoryException(path + subpath)
             }
         }
 
     actual fun removeIfExists(context: TransactionContext, subpath: List<String>): FdbFuture<Boolean> =
         runWithTransactionContext(context) { tr ->
-            DirectoryStore.remove(tr, path + subpath, layerData, this.context)
+            DirectoryStore.remove(tr, path + subpath, this.context)
         }
 
     actual fun list(context: ReadTransactionContext, subpath: List<String>): FdbFuture<List<String>> =
         runWithReadContext(context) { rt ->
-            DirectoryStore.listChildren(rt, path + subpath, layerData, 0, this.context)
+            DirectoryStore.listChildren(rt, path + subpath, 0, this.context)
         }
 
     actual fun exists(context: ReadTransactionContext, subpath: List<String>): FdbFuture<Boolean> =

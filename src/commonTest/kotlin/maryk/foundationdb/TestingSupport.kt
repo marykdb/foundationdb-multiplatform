@@ -1,6 +1,7 @@
 package maryk.foundationdb
 
 import kotlinx.coroutines.runBlocking
+import maryk.foundationdb.directory.DirectoryLayer
 import maryk.foundationdb.tuple.Tuple
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -31,6 +32,15 @@ internal class FoundationDbTestHarness {
     suspend fun clearNamespace() {
         database.runSuspend { txn ->
             txn.clear(Range.startsWith(namespaceBytes))
+            // Also clear any directory layer metadata under the namespace root in the default directory layer
+            try {
+                DirectoryLayer.getDefault()
+                    .testDirectoryOrNull()
+                    ?.removeIfExists(txn, listOf(namespace))
+                    ?.await()
+            } catch (_: Throwable) {
+                // Ignore cleanup failures; test harness should keep running
+            }
         }
     }
 
