@@ -88,7 +88,7 @@ kotlin {
             )
         }
     }
-    jvmToolchain(21)
+    jvmToolchain(17)
     val macosArm64Target = macosArm64()
     val macosX64Target = macosX64()
     val linuxX64Target = linuxX64()
