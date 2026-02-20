@@ -13,6 +13,7 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.value
 
+@Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
 actual class Tenant internal constructor(internal val pointer: CPointer<FDBTenant>) : TransactionContext {
     private fun createTransaction(): Transaction = memScoped {
         val out = allocPointerTo<FDBTransaction>()

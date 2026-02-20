@@ -1,5 +1,6 @@
 package maryk.foundationdb
 
+@Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
 actual class Tenant internal constructor(
     internal val delegate: com.apple.foundationdb.Tenant
 ) : TransactionContext {

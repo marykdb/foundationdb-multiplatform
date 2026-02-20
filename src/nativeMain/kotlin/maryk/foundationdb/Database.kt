@@ -31,6 +31,7 @@ actual class Database internal constructor(internal val pointer: CPointer<FDBDat
         Transaction(txnPointer)
     }
 
+    @Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
     actual fun openTenant(tenantName: Tuple): Tenant = memScoped {
         NativeEnvironment.ensureNetwork()
         val out = allocPointerTo<FDBTenant>()

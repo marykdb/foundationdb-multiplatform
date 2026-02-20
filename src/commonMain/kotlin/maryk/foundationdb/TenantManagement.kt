@@ -5,6 +5,7 @@ import maryk.foundationdb.tuple.Tuple
 /**
  * Multiplatform access to tenant administration helpers.
  */
+@Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
 expect object TenantManagement {
     fun createTenant(transaction: Transaction, tenantName: ByteArray)
     fun createTenant(transaction: Transaction, tenantName: Tuple)

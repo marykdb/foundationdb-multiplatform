@@ -9,6 +9,7 @@ expect class Database : TransactionContext {
     override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T>
     fun options(): DatabaseOptions
     fun createTransaction(): Transaction
+    @Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
     fun openTenant(tenantName: Tuple): Tenant
     fun close()
 }

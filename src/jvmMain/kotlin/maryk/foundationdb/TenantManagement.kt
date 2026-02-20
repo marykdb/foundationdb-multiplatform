@@ -1,10 +1,9 @@
 package maryk.foundationdb
 
-import java.util.ArrayList
-import java.util.concurrent.CompletableFuture
-import maryk.foundationdb.toFdbFuture
 import maryk.foundationdb.tuple.Tuple
+import java.util.concurrent.CompletableFuture
 
+@Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
 actual object TenantManagement {
     actual fun createTenant(transaction: Transaction, tenantName: ByteArray) {
         com.apple.foundationdb.TenantManagement.createTenant(transaction.delegate, tenantName)
@@ -16,7 +15,7 @@ actual object TenantManagement {
 
     actual fun createTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> {
         return com.apple.foundationdb.TenantManagement.createTenant(database.delegate, tenantName)
-            .thenApply { Unit }
+            .thenApply { }
             .toFdbFuture()
     }
 
@@ -33,7 +32,7 @@ actual object TenantManagement {
 
     actual fun deleteTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> {
         return com.apple.foundationdb.TenantManagement.deleteTenant(database.delegate, tenantName)
-            .thenApply { Unit }
+            .thenApply { }
             .toFdbFuture()
     }
 

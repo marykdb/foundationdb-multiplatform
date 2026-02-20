@@ -7,7 +7,7 @@ etc.) can be used from JVM code as well as native Apple/Linux binaries.
 The repository currently tracks FoundationDB **7.3** and is meant for application developers that want:
 
 - A single, coroutine-friendly API surface shared between JVM and Kotlin/Native targets.
-- Access to the full FoundationDB feature set (tenants, tuple layer, range iterators, advanced transaction options)
+- Access to the full FoundationDB feature set (tuple layer, range iterators, advanced transaction options)
 
 ## Supported targets
 
@@ -38,8 +38,8 @@ kotlin {
 
 On the JVM the wrapper delegates straight to the official Java bindings. On native targets the project links against the
 C client (`libfdb_c`) that ships with FoundationDB. You must install the FoundationDB client libraries for the host OS
-before running your binaries; the provided scripts under `foundationdb/scripts` can do this for macOS and Linux, but into
-a local directory under `build/foundationdb/bin`.
+before running your binaries; the provided scripts under `foundationdb/scripts` install/copy these binaries into
+`foundationdb/bin` (project-local, preferred over system paths).
 
 ### Minimal example
 
@@ -65,14 +65,8 @@ fun main() {
 }
 ```
 
-Additional examples live in `src/commonTest/kotlin/maryk/foundationdb` and mirror all major FoundationDB features (tenants,
-range iterators, tuple decoding helpers, management API, etc.).
-
-### Tenant support (native)
-
-Native targets open tenants through `fdb_database_open_tenant`, but create/delete/list still go through the special-key
-space at `/management/tenant/map` because the 7.3.71 C client does not expose tenant management calls. The helper API
-matches the JVM behavior and is kept in sync with FoundationDB 7.3.x semantics.
+Additional examples live in `src/commonTest/kotlin/maryk/foundationdb` and mirror all major FoundationDB features
+(range iterators, tuple decoding helpers, management API, etc.).
 
 ## Development workflow
 

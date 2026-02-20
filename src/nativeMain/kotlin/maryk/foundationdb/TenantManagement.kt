@@ -10,6 +10,7 @@ private val TENANT_MANAGEMENT_PREFIX = ByteArrayUtil.join(
 )
 
 @OptIn(ExperimentalAtomicApi::class)
+@Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
 actual object TenantManagement {
     private fun managementKey(name: ByteArray): ByteArray = ByteArrayUtil.join(TENANT_MANAGEMENT_PREFIX, name)
 

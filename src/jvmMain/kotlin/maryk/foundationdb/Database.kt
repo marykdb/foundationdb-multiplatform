@@ -10,6 +10,7 @@ actual class Database internal constructor(
     actual fun createTransaction(): Transaction =
         Transaction(delegate.createTransaction())
 
+    @Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
     actual fun openTenant(tenantName: Tuple): Tenant =
         Tenant(delegate.openTenant(tenantName.delegate))
 
