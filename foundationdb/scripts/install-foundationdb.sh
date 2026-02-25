@@ -16,8 +16,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BIN_DIR="$ROOT_DIR/foundationdb/bin"
 LIB_DIR="$BIN_DIR/lib"
+VERSION_FILE="$BIN_DIR/.fdb-version"
 
-FDB_VERSION_DEFAULT="7.3.71"
+FDB_VERSION_DEFAULT="7.3.73"
 FDB_VERSION="${FDB_VERSION:-$FDB_VERSION_DEFAULT}"
 
 if [[ "${1:-}" == "--version" && -n "${2:-}" ]]; then
@@ -32,7 +33,11 @@ log() { echo "[install-foundationdb] $*"; }
 warn() { echo "[install-foundationdb][WARN] $*" >&2; }
 err() { echo "[install-foundationdb][ERROR] $*" >&2; exit 1; }
 
-debug() { [[ "${VERBOSE:-0}" == "1" ]] && echo "[install-foundationdb][DEBUG] $*"; }
+debug() {
+  if [[ "${VERBOSE:-0}" == "1" ]]; then
+    echo "[install-foundationdb][DEBUG] $*"
+  fi
+}
 safe_copy() {
   # Usage: safe_copy <src> <dst_dir>
   local src
@@ -49,6 +54,27 @@ safe_copy() {
 }
 
 have() { command -v "$1" >/dev/null 2>&1; }
+
+extract_fdb_version() {
+  local binary="$1"
+  [[ -x "$binary" ]] || return 1
+  "$binary" --version 2>/dev/null | sed -n 's/.*(v\([0-9][0-9.]*\)).*/\1/p' | head -n1
+}
+
+local_install_matches_version() {
+  local local_server="$BIN_DIR/fdbserver"
+  [[ -x "$local_server" ]] || return 1
+
+  local current=""
+  if [[ -f "$VERSION_FILE" ]]; then
+    current="$(tr -d ' \n\r' < "$VERSION_FILE")"
+  fi
+  if [[ -z "$current" ]]; then
+    current="$(extract_fdb_version "$local_server" || true)"
+  fi
+
+  [[ "$current" == "$FDB_VERSION" ]]
+}
 
 copy_libs_from_dir() {
   local dir="$1"
@@ -69,6 +95,13 @@ copy_libs_from_dir() {
 link_existing_install() {
   local server
   if ! server="$(command -v fdbserver 2>/dev/null)"; then
+    return 1
+  fi
+
+  local detected_version
+  detected_version="$(extract_fdb_version "$server" || true)"
+  if [[ "$detected_version" != "$FDB_VERSION" ]]; then
+    warn "System fdbserver version is ${detected_version:-unknown}, expected $FDB_VERSION; skipping PATH install"
     return 1
   fi
 
@@ -113,6 +146,7 @@ link_existing_install() {
     warn "libfdb_c not found next to system installation; continuing"
   fi
 
+  echo "$FDB_VERSION" > "$VERSION_FILE"
   log "Linked existing FoundationDB installation from PATH ($server)"
   return 0
 }
@@ -184,6 +218,7 @@ install_macos() {
     ls -l "$LIB_DIR" || true
   fi
 
+  echo "$FDB_VERSION" > "$VERSION_FILE"
   log "FoundationDB installation complete (macOS minimal path)"
 }
 
@@ -280,6 +315,7 @@ install_linux_from_deb() {
     warn "libfdb_c library not found in extracted packages"
   fi
 
+  echo "$FDB_VERSION" > "$VERSION_FILE"
   log "Installed FoundationDB binaries into $BIN_DIR"
 }
 
@@ -367,9 +403,12 @@ main() {
   debug "BIN_DIR: $BIN_DIR"
   debug "LIB_DIR: $LIB_DIR"
 
-  if [[ -x "$BIN_DIR/fdbserver" ]]; then
-    log "fdbserver already present in $BIN_DIR"
+  if local_install_matches_version; then
+    log "fdbserver already present in $BIN_DIR at requested version $FDB_VERSION"
     exit 0
+  fi
+  if [[ -x "$BIN_DIR/fdbserver" ]]; then
+    warn "Existing local FoundationDB install is not $FDB_VERSION; attempting in-place upgrade"
   fi
 
   case "$(uname -s)" in

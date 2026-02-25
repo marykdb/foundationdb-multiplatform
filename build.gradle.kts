@@ -19,20 +19,22 @@ repositories {
 val coroutinesVersion = "1.9.0"
 val foundationDbDir = rootProject.projectDir.resolve("foundationdb")
 val foundationDbScriptsDir = foundationDbDir.resolve("scripts")
-val foundationDbVersion = "7.3.71"
+val foundationDbVersion = "7.3.73"
+val foundationDbJavaVersion = foundationDbVersion
 val foundationDbNativeDir = layout.buildDirectory.dir("foundationdb")
 val foundationDbApiVersion = 730
 val foundationDbReleaseBranch = "release-${foundationDbVersion.substringBeforeLast('.')}"
 
 group = "io.maryk.foundationdb"
-version = foundationDbVersion
+version = "7.3.73-SNAPSHOT"
 
 extensions.extraProperties["foundationDbVersion"] = foundationDbVersion
 extensions.extraProperties["foundationDbNativeDir"] = foundationDbNativeDir
 val foundationDbHeadersDir = foundationDbNativeDir.map { it.dir("headers") }
 val foundationDbHeadersIncludeDir = foundationDbHeadersDir.map { it.dir("include") }
 val downloadFoundationDbHeaders = tasks.register("downloadFoundationDbHeaders") {
-    val headersUrl = "https://github.com/apple/foundationdb/releases/download/$foundationDbVersion/fdb-headers-$foundationDbVersion.tar.gz"
+    val requestedHeadersUrl =
+        "https://github.com/apple/foundationdb/releases/download/$foundationDbVersion/fdb-headers-$foundationDbVersion.tar.gz"
     val includeDirProvider = foundationDbHeadersIncludeDir
     inputs.property("version", foundationDbVersion)
     outputs.dir(includeDirProvider)
@@ -48,7 +50,7 @@ val downloadFoundationDbHeaders = tasks.register("downloadFoundationDbHeaders") 
         includeDir.parentFile.deleteRecursively()
         includeDir.mkdirs()
         val archive = temporaryDir.resolve("fdb-headers.tar.gz")
-        URI(headersUrl).toURL().openStream().use { input ->
+        URI(requestedHeadersUrl).toURL().openStream().use { input ->
             Files.copy(input, archive.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }
         val tree = project.tarTree(project.resources.gzip(archive))
@@ -133,7 +135,7 @@ kotlin {
         }
         jvmMain {
             dependencies {
-                implementation("org.foundationdb:fdb-java:7.3.71")
+                implementation("org.foundationdb:fdb-java:$foundationDbJavaVersion")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
             }
         }
@@ -146,6 +148,7 @@ val installFoundationDB by tasks.registering(Exec::class) {
     group = "foundationdb"
     description = "Install or link FoundationDB binaries into foundationdb/bin"
     environment("VERBOSE", "1")
+    environment("FDB_VERSION", foundationDbVersion)
     commandLine("bash", foundationDbScriptsDir.resolve("install-foundationdb.sh").absolutePath)
 }
 
