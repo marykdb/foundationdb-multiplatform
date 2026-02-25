@@ -86,9 +86,9 @@ actual object TenantManagement {
     actual fun listTenants(database: Database, begin: Tuple, end: Tuple, limit: Int): FdbFuture<List<KeyValue>> =
         listTenants(database, begin.pack(), end.pack(), limit)
 
-    private fun tenantJsonValue(name: ByteArray): ByteArray {
-        val nameStr = name.decodeToString()
-        val json = """{"tenant_name":"$nameStr"}"""
-        return json.encodeToByteArray()
+    private fun tenantJsonValue(@Suppress("UNUSED_PARAMETER") name: ByteArray): ByteArray {
+        // The name is encoded in the special-key path itself; keep payload encoding independent
+        // from tenant-name byte content so tuple-packed (binary) names work unchanged.
+        return "{}".encodeToByteArray()
     }
 }

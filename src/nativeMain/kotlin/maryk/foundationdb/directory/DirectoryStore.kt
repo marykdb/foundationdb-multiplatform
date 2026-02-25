@@ -187,8 +187,20 @@ internal object DirectoryStore {
     private suspend fun loadMetadata(readTransaction: ReadTransaction, subspace: Subspace, path: List<String>): Node {
         val layerKey = subspace.pack(LAYER_KEY)
         val layerBytes = readTransaction.get(layerKey).await()
-        // Treat missing layer key as existing with empty layer (older writers sometimes omitted it)
-        return Node(subspace, path, layerBytes ?: byteArrayOf(), true)
+        if (layerBytes != null) {
+            return Node(subspace, path, layerBytes, true)
+        }
+
+        // Keep compatibility with older writers that could omit the layer key, but avoid treating a
+        // stale pointer to a fully removed node as an existing directory.
+        val hasAnyMetadata = readTransaction.collectRange(
+            subspace.range().begin,
+            subspace.range().end,
+            limit = 1,
+            reverse = false,
+            streamingMode = StreamingMode.WANT_ALL
+        ).await().values.isNotEmpty()
+        return Node(subspace, path, byteArrayOf(), hasAnyMetadata)
     }
 
     private suspend fun removeRecursive(transaction: Transaction, nodeSubspace: Subspace, context: DirectoryContext) {
@@ -208,8 +220,11 @@ internal object DirectoryStore {
 
     private fun removeFromParent(transaction: Transaction, path: List<String>, context: DirectoryContext) {
         val parentPath = path.dropLast(1)
-        if (parentPath.isEmpty()) return
-        val parentNode = nodeWithPrefix(findPrefixFromPath(transaction, parentPath, context) ?: return, context)
+        val parentNode = if (parentPath.isEmpty()) {
+            rootNode(context)
+        } else {
+            nodeWithPrefix(findPrefixFromPath(transaction, parentPath, context) ?: return, context)
+        }
         val subdir = parentNode.get(SUB_DIR_KEY)
         transaction.clear(subdir.pack(path.last()))
     }

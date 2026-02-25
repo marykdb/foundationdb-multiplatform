@@ -235,4 +235,50 @@ class DirectoryIntegrationTest {
         val movedValue = database.readSuspend { rt -> rt.get(reopened.pack(Tuple.from("key"))).await() }
         assertEquals("value", movedValue?.decodeToString())
     }
+
+    @Test
+    fun removingTopLevelDirectoryAlsoRemovesRootListingEntry() = harness.runAndReset {
+        val layer = DirectoryLayer.getDefault()
+        val root = layer.testDirectoryOrNull() ?: return@runAndReset
+        val topLevelPath = listOf(namespace)
+
+        database.runSuspend { txn ->
+            root.createOrOpen(txn, topLevelPath).await()
+        }
+        assertTrue(root.exists(database, topLevelPath).await())
+
+        database.runSuspend { txn ->
+            root.remove(txn, topLevelPath).await()
+        }
+        assertFalse(root.exists(database, topLevelPath).await())
+
+        val rootEntries = root.list(database).await()
+        assertFalse(rootEntries.contains(namespace))
+    }
+
+    @Test
+    fun movingTopLevelDirectoryUpdatesRootListing() = harness.runAndReset {
+        val layer = DirectoryLayer.getDefault()
+        val root = layer.testDirectoryOrNull() ?: return@runAndReset
+        val source = listOf(namespace)
+        val destinationName = "$namespace-moved"
+        val destination = listOf(destinationName)
+
+        try {
+            database.runSuspend { txn ->
+                root.createOrOpen(txn, source).await()
+            }
+            database.runSuspend { txn ->
+                root.move(txn, source, destination).await()
+            }
+
+            val rootEntries = root.list(database).await()
+            assertFalse(rootEntries.contains(namespace))
+            assertTrue(rootEntries.contains(destinationName))
+        } finally {
+            database.runSuspend { txn ->
+                root.removeIfExists(txn, destination).await()
+            }
+        }
+    }
 }

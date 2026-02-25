@@ -1,5 +1,8 @@
 package maryk.foundationdb
 
+import java.util.concurrent.CompletionException
+import java.util.concurrent.ExecutionException
+
 actual class Transaction internal constructor(
     override val delegate: com.apple.foundationdb.Transaction
 ) : ReadTransaction(delegate), TransactionContext {
@@ -68,10 +71,11 @@ actual class Transaction internal constructor(
                 delegate.commit().join()
                 return result
             } catch (t: Throwable) {
-                if (t is FDBException) {
-                    delegate.onError(t).join()
+                val unwrapped = t.unwrapCompletionLike()
+                if (unwrapped is FDBException) {
+                    delegate.onError(unwrapped).join()
                 } else {
-                    throw t
+                    throw unwrapped
                 }
             }
         }
@@ -115,4 +119,10 @@ actual class Transaction internal constructor(
         MutationType.SET_VERSIONSTAMPED_VALUE -> com.apple.foundationdb.MutationType.SET_VERSIONSTAMPED_VALUE
         MutationType.APPEND_IF_FITS -> com.apple.foundationdb.MutationType.APPEND_IF_FITS
     }
+}
+
+internal fun Throwable.unwrapCompletionLike(): Throwable = when (this) {
+    is CompletionException -> this.cause ?: this
+    is ExecutionException -> this.cause ?: this
+    else -> this
 }

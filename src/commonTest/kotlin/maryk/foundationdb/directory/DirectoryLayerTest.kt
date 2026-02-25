@@ -45,6 +45,27 @@ class DirectoryLayerJvmTest {
             directory.removeIfExists(txn, basePath).await()
         }
     }
+
+    @Test
+    fun subspaceChildOperationsDoNotInheritParentLayer() = harness.runAndReset {
+        val layer = DirectoryLayer.getDefault()
+        val directory = layer.testDirectoryOrNull() ?: return@runAndReset
+        val basePath = listOf(namespace, "layered-parent", "root")
+        val parentLayer = "parent-layer".encodeToByteArray()
+
+        val parent = database.runSuspend { txn ->
+            directory.create(txn, basePath, parentLayer).await()
+        }
+        val child = database.runSuspend { txn ->
+            parent.createOrOpen(txn, listOf("child")).await()
+        }
+
+        val reopened = database.runSuspend { txn ->
+            parent.open(txn, listOf("child")).await()
+        }
+        assertTrue(child.pack().contentEquals(reopened.pack()))
+    }
+
 }
 
 private fun ByteArray.startsWith(prefix: ByteArray): Boolean =
