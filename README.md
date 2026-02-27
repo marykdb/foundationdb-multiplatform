@@ -1,3 +1,5 @@
+[![Download](https://img.shields.io/maven-central/v/io.maryk.foundationdb/foundationdb-multiplatform)](https://central.sonatype.com/artifact/io.maryk.foundationdb/foundationdb-multiplatform)
+
 # FoundationDB Multiplatform
 
 Kotlin Multiplatform bindings for [FoundationDB](https://apple.github.io/foundationdb/). The project wraps the official
