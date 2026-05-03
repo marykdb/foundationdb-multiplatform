@@ -7,16 +7,16 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
 plugins {
-    kotlin("multiplatform") version "2.2.10"
-    id("com.vanniktech.maven.publish") version "0.34.0"
-    id("org.jetbrains.kotlinx.kover") version "0.8.0"
+    kotlin("multiplatform") version "2.2.21"
+    id("com.vanniktech.maven.publish") version "0.35.0"
+    id("org.jetbrains.kotlinx.kover") version "0.9.8"
 }
 
 repositories {
     mavenCentral()
 }
 
-val coroutinesVersion = "1.9.0"
+val coroutinesVersion = "1.10.2"
 val foundationDbDir = rootProject.projectDir.resolve("foundationdb")
 val foundationDbScriptsDir = foundationDbDir.resolve("scripts")
 val foundationDbVersion = "7.3.73"
