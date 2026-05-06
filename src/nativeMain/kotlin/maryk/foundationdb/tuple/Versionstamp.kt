@@ -10,7 +10,7 @@ actual class Versionstamp private constructor(
     actual fun transactionVersion(): ByteArray = transactionVersion.copyOf()
 
     actual override fun compareTo(other: Versionstamp): Int =
-        transactionVersion.contentHashCode().compareTo(other.transactionVersion.contentHashCode())
+        bytes.compareLexicographically(other.bytes)
 
     actual companion object {
         private val UNSET_TRANSACTION_VERSION = ByteArray(10) { 0xff.toByte() }
@@ -53,4 +53,14 @@ actual class Versionstamp private constructor(
             return (((bytes[offset].toInt() and 0xff) shl 8) or (bytes[offset + 1].toInt() and 0xff))
         }
     }
+}
+
+private fun ByteArray.compareLexicographically(other: ByteArray): Int {
+    val limit = minOf(size, other.size)
+    for (index in 0 until limit) {
+        val left = this[index].toInt() and 0xff
+        val right = other[index].toInt() and 0xff
+        if (left != right) return left.compareTo(right)
+    }
+    return size.compareTo(other.size)
 }

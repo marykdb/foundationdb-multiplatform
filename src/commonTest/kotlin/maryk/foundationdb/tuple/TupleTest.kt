@@ -52,4 +52,27 @@ class TupleTest {
         fun normalizeItems(items: List<Any?>) = items.map { normalize(it) }
         assertEquals(normalizeItems(tuple.items), normalizeItems(reparsed.items))
     }
+
+    @Test
+    fun versionstampComparisonUsesLexicographicByteOrder() {
+        val first = Versionstamp.complete(
+            byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0, 1, 0),
+            userVersion = 0
+        )
+        val second = Versionstamp.complete(
+            byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 255.toByte()),
+            userVersion = 0
+        )
+
+        assertTrue(second < first)
+    }
+
+    @Test
+    fun versionstampComparisonIncludesUserVersion() {
+        val transactionVersion = byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
+        val first = Versionstamp.complete(transactionVersion, userVersion = 1)
+        val second = Versionstamp.complete(transactionVersion, userVersion = 2)
+
+        assertTrue(first < second)
+    }
 }
