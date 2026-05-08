@@ -55,12 +55,10 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.LongVar
 import kotlinx.cinterop.UByteVar
 import kotlinx.cinterop.alloc
-import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.sizeOf
-import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
 
 actual class TransactionOptions internal constructor(private val pointer: CPointer<FDBTransaction>) : TransactionOptionSink {
@@ -69,9 +67,8 @@ actual class TransactionOptions internal constructor(private val pointer: CPoint
     }
 
     private fun set(option: UInt, bytes: ByteArray) {
-        bytes.usePinned { pinned ->
-            val ptr = pinned.addressOf(0).reinterpret<UByteVar>()
-            checkError(fdb_transaction_set_option(pointer, option, ptr, bytes.size))
+        bytes.withPointer { ptr, length ->
+            checkError(fdb_transaction_set_option(pointer, option, ptr, length))
         }
     }
 

@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalForeignApi::class)
+@file:OptIn(ExperimentalForeignApi::class, ExperimentalAtomicApi::class)
 
 package maryk.foundationdb
 
@@ -18,12 +18,19 @@ import kotlinx.cinterop.staticCFunction
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 private var supervisorJob = SupervisorJob()
 private var futureScope = CoroutineScope(supervisorJob + Dispatchers.Default)
+private const val UNSET = 0
+private const val SET = 1
 
 internal class NativeFuture<T>(
     private val pointer: CPointer<FDBFuture>,
@@ -31,12 +38,16 @@ internal class NativeFuture<T>(
 ) : FdbFuture<T> {
     private val deferred = CompletableDeferred<T>()
     private val ref = StableRef.create(this)
+    private val callbackClaimed = AtomicInt(UNSET)
+    private val destroyed = AtomicInt(UNSET)
+    private val activeCancels = AtomicInt(0)
 
     init {
         checkError(fdb_future_set_callback(pointer, callback, ref.asCPointer()))
     }
 
     private fun completeFromCallback(future: CPointer<FDBFuture>) {
+        if (!callbackClaimed.compareAndSet(UNSET, SET)) return
         futureScope.launch {
             try {
                 val result = memScoped {
@@ -48,8 +59,14 @@ internal class NativeFuture<T>(
             } catch (t: Throwable) {
                 deferred.completeExceptionally(t)
             } finally {
-                fdb_future_destroy(future)
-                ref.dispose()
+                withContext(NonCancellable) {
+                    destroyed.compareAndSet(UNSET, SET)
+                    while (activeCancels.load() != 0) {
+                        yield()
+                    }
+                    fdb_future_destroy(future)
+                    ref.dispose()
+                }
             }
         }
     }
@@ -57,7 +74,16 @@ internal class NativeFuture<T>(
     override suspend fun await(): T = deferred.await()
 
     override fun cancel() {
-        fdb_future_cancel(pointer)
+        if (tryEnterCancel()) {
+            try {
+                if (destroyed.load() == UNSET) {
+                    fdb_future_cancel(pointer)
+                }
+            } finally {
+                exitCancel()
+            }
+        }
+        deferred.cancel()
     }
 
     override val isDone: Boolean get() = deferred.isCompleted
@@ -69,6 +95,21 @@ internal class NativeFuture<T>(
                 val owner = userData.asStableRef<NativeFuture<*>>()
                 owner.get().completeFromCallback(future)
             }
+        }
+    }
+
+    private fun tryEnterCancel(): Boolean {
+        while (true) {
+            if (destroyed.load() != UNSET) return false
+            val current = activeCancels.load()
+            if (activeCancels.compareAndSet(current, current + 1)) return true
+        }
+    }
+
+    private fun exitCancel() {
+        while (true) {
+            val current = activeCancels.load()
+            if (activeCancels.compareAndSet(current, current - 1)) return
         }
     }
 }

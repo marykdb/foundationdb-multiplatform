@@ -26,13 +26,11 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.LongVar
 import kotlinx.cinterop.UByteVar
-import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.sizeOf
-import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
 
 actual class DatabaseOptions internal constructor(private val pointer: CPointer<FDBDatabase>) : DatabaseOptionSink {
@@ -41,9 +39,8 @@ actual class DatabaseOptions internal constructor(private val pointer: CPointer<
     }
 
     private fun set(option: UInt, bytes: ByteArray) {
-        bytes.usePinned { pinned ->
-            val ptr = pinned.addressOf(0).reinterpret<UByteVar>()
-            checkError(fdb_database_set_option(pointer, option, ptr, bytes.size))
+        bytes.withPointer { ptr, length ->
+            checkError(fdb_database_set_option(pointer, option, ptr, length))
         }
     }
 

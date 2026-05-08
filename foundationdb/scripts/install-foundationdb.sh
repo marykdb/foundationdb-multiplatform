@@ -55,6 +55,39 @@ safe_copy() {
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
+sha256_file() {
+  local file="$1"
+  if have shasum; then
+    shasum -a 256 "$file" | awk '{print $1}'
+  elif have sha256sum; then
+    sha256sum "$file" | awk '{print $1}'
+  else
+    err "No SHA-256 tool found (need shasum or sha256sum)"
+  fi
+}
+
+verify_sha256() {
+  local file="$1"
+  local checksum_file="$2"
+  local expected
+  expected="$(grep -Eo '[A-Fa-f0-9]{64}' "$checksum_file" | head -n1 | tr '[:upper:]' '[:lower:]')"
+  [[ -n "$expected" ]] || err "Could not read SHA-256 checksum from $checksum_file"
+
+  local actual
+  actual="$(sha256_file "$file")"
+  if [[ "$actual" != "$expected" ]]; then
+    err "Checksum mismatch for $(basename "$file"): expected $expected, got $actual"
+  fi
+}
+
+download_verified() {
+  local url="$1"
+  local target="$2"
+  curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors "$url" -o "$target"
+  curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors "$url.sha256" -o "$target.sha256"
+  verify_sha256 "$target" "$target.sha256"
+}
+
 extract_fdb_version() {
   local binary="$1"
   [[ -x "$binary" ]] || return 1
@@ -171,7 +204,7 @@ install_macos() {
   local url="https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/${pkg}"
 
   log "Downloading $pkg from FoundationDB releases"
-  curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors "$url" -o "$tmp/$pkg"
+  download_verified "$url" "$tmp/$pkg"
 
   # Expand meta-pkg
   pkgutil --expand-full "$tmp/$pkg" "$tmp/expanded"
@@ -242,8 +275,8 @@ install_linux_from_deb() {
   local server_pkg="foundationdb-server_${FDB_VERSION}-1_${deb_arch}.deb"
 
   log "Downloading $clients_pkg and $server_pkg"
-  curl -fsSL "$base/$clients_pkg" -o "$tmp/$clients_pkg"
-  curl -fsSL "$base/$server_pkg" -o "$tmp/$server_pkg"
+  download_verified "$base/$clients_pkg" "$tmp/$clients_pkg"
+  download_verified "$base/$server_pkg" "$tmp/$server_pkg"
 
   extract_deb() {
     local deb="$1"

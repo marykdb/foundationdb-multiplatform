@@ -32,13 +32,11 @@ import foundationdb.c.fdb_network_set_option
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.LongVar
 import kotlinx.cinterop.UByteVar
-import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.sizeOf
-import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
 
 actual class NetworkOptions internal constructor() {
@@ -47,9 +45,8 @@ actual class NetworkOptions internal constructor() {
     }
 
     private fun set(option: UInt, bytes: ByteArray) {
-        bytes.usePinned { pinned ->
-            val ptr = pinned.addressOf(0).reinterpret<UByteVar>()
-            checkError(fdb_network_set_option(option, ptr, bytes.size))
+        bytes.withPointer { ptr, length ->
+            checkError(fdb_network_set_option(option, ptr, length))
         }
     }
 

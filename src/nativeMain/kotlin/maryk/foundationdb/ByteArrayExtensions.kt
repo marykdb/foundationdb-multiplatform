@@ -29,5 +29,5 @@ internal fun ByteArray.nextKey(): ByteArray {
             return copy
         }
     }
-    return this + 0.toByte()
+    throw IllegalArgumentException("Key has no lexicographic successor")
 }

@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import java.net.URI
+import java.security.MessageDigest
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
@@ -52,6 +53,21 @@ val downloadFoundationDbHeaders = tasks.register("downloadFoundationDbHeaders") 
         val archive = temporaryDir.resolve("fdb-headers.tar.gz")
         URI(requestedHeadersUrl).toURL().openStream().use { input ->
             Files.copy(input, archive.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+        val checksumFile = temporaryDir.resolve("fdb-headers.tar.gz.sha256")
+        URI("$requestedHeadersUrl.sha256").toURL().openStream().use { input ->
+            Files.copy(input, checksumFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+        val expectedChecksum = checksumFile.readText()
+            .lineSequence()
+            .flatMap { Regex("[A-Fa-f0-9]{64}").findAll(it).map { match -> match.value.lowercase() } }
+            .firstOrNull()
+            ?: error("Could not read SHA-256 checksum from $requestedHeadersUrl.sha256")
+        val actualChecksum = MessageDigest.getInstance("SHA-256")
+            .digest(archive.readBytes())
+            .joinToString("") { "%02x".format(it) }
+        check(actualChecksum == expectedChecksum) {
+            "Checksum mismatch for $requestedHeadersUrl: expected $expectedChecksum, got $actualChecksum"
         }
         val tree = project.tarTree(project.resources.gzip(archive))
         project.copy {

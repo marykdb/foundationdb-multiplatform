@@ -44,4 +44,11 @@ class RangeHelpersTest {
         assertTrue(comparator.compare(listOf(1, 3), listOf(1, 2, 3)) > 0)
         assertEquals(0, comparator.compare(listOf(1, 2, 3), listOf(1, 2, 3)))
     }
+
+    @Test
+    fun rangeStartsWithRejectsPrefixWithoutSuccessor() {
+        assertFailsWith<IllegalArgumentException> {
+            Range.startsWith(byteArrayOf(0xFF.toByte()))
+        }
+    }
 }
