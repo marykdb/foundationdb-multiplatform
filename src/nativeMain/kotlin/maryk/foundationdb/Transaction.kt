@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalForeignApi::class)
+@file:OptIn(ExperimentalForeignApi::class, ExperimentalAtomicApi::class)
 
 package maryk.foundationdb
 
@@ -7,7 +7,6 @@ import foundationdb.c.fdb_future_get_int64
 import foundationdb.c.fdb_transaction_add_conflict_range
 import foundationdb.c.fdb_transaction_atomic_op
 import foundationdb.c.fdb_transaction_commit
-import foundationdb.c.fdb_transaction_destroy
 import foundationdb.c.fdb_transaction_get_estimated_range_size_bytes
 import foundationdb.c.fdb_transaction_on_error
 import foundationdb.c.fdb_transaction_watch
@@ -18,28 +17,35 @@ import kotlinx.cinterop.alloc
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.value
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 actual class Transaction internal constructor(pointer: CPointer<FDBTransaction>) : ReadTransaction(pointer, snapshot = false), TransactionContext {
-    actual override fun options(): TransactionOptions = TransactionOptions(pointer)
+    actual override fun options(): TransactionOptions = TransactionOptions(handle)
 
     actual fun set(key: ByteArray, value: ByteArray) {
-        key.withPointer { keyPtr, keyLen ->
-            value.withPointer { valuePtr, valueLen ->
-                foundationdb.c.fdb_transaction_set(pointer, keyPtr, keyLen, valuePtr, valueLen)
+        handle.usePointer { pointer ->
+            key.withPointer { keyPtr, keyLen ->
+                value.withPointer { valuePtr, valueLen ->
+                    foundationdb.c.fdb_transaction_set(pointer, keyPtr, keyLen, valuePtr, valueLen)
+                }
             }
         }
     }
 
     actual fun clear(key: ByteArray) {
-        key.withPointer { keyPtr, keyLen ->
-            foundationdb.c.fdb_transaction_clear(pointer, keyPtr, keyLen)
+        handle.usePointer { pointer ->
+            key.withPointer { keyPtr, keyLen ->
+                foundationdb.c.fdb_transaction_clear(pointer, keyPtr, keyLen)
+            }
         }
     }
 
     actual fun clear(beginKey: ByteArray, endKey: ByteArray) {
-        beginKey.withPointer { beginPtr, beginLen ->
-            endKey.withPointer { endPtr, endLen ->
-                foundationdb.c.fdb_transaction_clear_range(pointer, beginPtr, beginLen, endPtr, endLen)
+        handle.usePointer { pointer ->
+            beginKey.withPointer { beginPtr, beginLen ->
+                endKey.withPointer { endPtr, endLen ->
+                    foundationdb.c.fdb_transaction_clear_range(pointer, beginPtr, beginLen, endPtr, endLen)
+                }
             }
         }
     }
@@ -59,18 +65,20 @@ actual class Transaction internal constructor(pointer: CPointer<FDBTransaction>)
         addConflictRange(key, key.nextKey(), ConflictRangeType.WRITE)
 
     private fun addConflictRange(beginKey: ByteArray, endKey: ByteArray, type: ConflictRangeType) {
-        beginKey.withPointer { beginPtr, beginLen ->
-            endKey.withPointer { endPtr, endLen ->
-                checkError(
-                    fdb_transaction_add_conflict_range(
-                        pointer,
-                        beginPtr,
-                        beginLen,
-                        endPtr,
-                        endLen,
-                        type.toNative()
+        handle.usePointer { pointer ->
+            beginKey.withPointer { beginPtr, beginLen ->
+                endKey.withPointer { endPtr, endLen ->
+                    checkError(
+                        fdb_transaction_add_conflict_range(
+                            pointer,
+                            beginPtr,
+                            beginLen,
+                            endPtr,
+                            endLen,
+                            type.toNative()
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -80,45 +88,55 @@ actual class Transaction internal constructor(pointer: CPointer<FDBTransaction>)
     }
 
     actual fun mutate(type: MutationType, key: ByteArray, value: ByteArray) {
-        key.withPointer { keyPtr, keyLen ->
-            value.withPointer { valuePtr, valueLen ->
-                fdb_transaction_atomic_op(pointer, keyPtr, keyLen, valuePtr, valueLen, type.toNative())
+        handle.usePointer { pointer ->
+            key.withPointer { keyPtr, keyLen ->
+                value.withPointer { valuePtr, valueLen ->
+                    fdb_transaction_atomic_op(pointer, keyPtr, keyLen, valuePtr, valueLen, type.toNative())
+                }
             }
         }
     }
 
     actual fun getEstimatedRangeSizeBytes(range: Range): FdbFuture<Long> {
-        val future = range.begin.withPointer { beginPtr, beginLen ->
-            range.end.withPointer { endPtr, endLen ->
-                fdb_transaction_get_estimated_range_size_bytes(pointer, beginPtr, beginLen, endPtr, endLen)
+        val future = handle.usePointerForFuture { pointer ->
+            range.begin.withPointer { beginPtr, beginLen ->
+                range.end.withPointer { endPtr, endLen ->
+                    fdb_transaction_get_estimated_range_size_bytes(pointer, beginPtr, beginLen, endPtr, endLen)
+                }
             }
         } ?: error("fdb_transaction_get_estimated_range_size_bytes returned null future")
-        return NativeFuture(future) { fut ->
-        val out = alloc<LongVarOf<Long>>()
+        return NativeFuture(future, onCleanup = handle::releaseFutureUse) { fut ->
+            val out = alloc<LongVarOf<Long>>()
             checkError(fdb_future_get_int64(fut, out.ptr.reinterpret<LongVarOf<Long>>()))
             out.value
         }
     }
 
     actual fun commit(): FdbFuture<Unit> {
-        val future = fdb_transaction_commit(pointer) ?: error("fdb_transaction_commit returned null future")
-        return NativeFuture(future) { }
+        val future = handle.usePointerForFuture(cancelOnClose = false) { pointer ->
+            fdb_transaction_commit(pointer)
+        } ?: error("fdb_transaction_commit returned null future")
+        return NativeFuture(future, onCleanup = { handle.releaseFutureUse(cancelOnClose = false) }) { }
     }
 
     actual fun onError(error: FDBException): FdbFuture<Unit> {
-        val future = fdb_transaction_on_error(pointer, error.getCode()) ?: error("fdb_transaction_on_error returned null future")
-        return NativeFuture(future) { }
+        val future = handle.usePointerForFuture { pointer ->
+            fdb_transaction_on_error(pointer, error.getCode())
+        } ?: error("fdb_transaction_on_error returned null future")
+        return NativeFuture(future, onCleanup = handle::releaseFutureUse) { }
     }
 
     actual fun watch(key: ByteArray): FdbFuture<Unit> {
-        val future = key.withPointer { keyPtr, keyLen ->
-            fdb_transaction_watch(pointer, keyPtr, keyLen)
+        val future = handle.usePointerForFuture { pointer ->
+            key.withPointer { keyPtr, keyLen ->
+                fdb_transaction_watch(pointer, keyPtr, keyLen)
+            }
         } ?: error("fdb_transaction_watch returned null future")
-        return NativeFuture(future) { }
+        return NativeFuture(future, onCleanup = handle::releaseFutureUse) { }
     }
 
     actual fun close() {
-        fdb_transaction_destroy(pointer)
+        handle.close()
     }
 
     actual override fun <T> run(block: (Transaction) -> T): T =

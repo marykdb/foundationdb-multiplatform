@@ -48,10 +48,12 @@ internal actual fun getAddressesForKeyInternal(
     transaction: Transaction,
     key: ByteArray
 ): FdbFuture<List<String>> {
-    val future = key.withPointer { keyPtr, keyLen ->
-        fdb_transaction_get_addresses_for_key(transaction.pointer, keyPtr, keyLen)
+    val future = transaction.handle.usePointerForFuture { pointer ->
+        key.withPointer { keyPtr, keyLen ->
+            fdb_transaction_get_addresses_for_key(pointer, keyPtr, keyLen)
+        }
     } ?: error("fdb_transaction_get_addresses_for_key returned null future")
-    return NativeFuture(future) { fut ->
+    return NativeFuture(future, onCleanup = transaction.handle::releaseFutureUse) { fut ->
         memScoped {
             val outStrings = alloc<CPointerVarOf<CPointer<CPointerVarOf<CPointer<ByteVar>>>>>()
             val outCount = alloc<IntVar>()

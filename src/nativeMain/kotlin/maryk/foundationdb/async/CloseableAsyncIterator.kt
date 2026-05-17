@@ -1,7 +1,10 @@
 package maryk.foundationdb.async
 
 import maryk.foundationdb.fdbFutureFromSuspend
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
+@OptIn(ExperimentalAtomicApi::class)
 actual class CloseableAsyncIterator<T> internal constructor(
     private val delegate: AsyncIterator<T>,
     private val closeAction: () -> Unit
@@ -11,7 +14,7 @@ actual class CloseableAsyncIterator<T> internal constructor(
         closeAction
     )
 
-    private var closed = false
+    private val closed = AtomicInt(0)
 
     override fun hasNext(): Boolean {
         val more = delegate.hasNext()
@@ -28,16 +31,15 @@ actual class CloseableAsyncIterator<T> internal constructor(
     }
 
     override fun cancel() {
-        delegate.cancel()
+        close()
     }
 
     actual fun close() {
-        if (!closed) {
-            closed = true
+        if (closed.compareAndSet(0, 1)) {
             try {
-                closeAction()
-            } finally {
                 delegate.cancel()
+            } finally {
+                closeAction()
             }
         }
     }

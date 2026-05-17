@@ -4,6 +4,7 @@ package maryk.foundationdb
 
 import foundationdb.c.FDBDatabase
 import foundationdb.c.fdb_create_database
+import foundationdb.c.fdb_database_destroy
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.allocPointerTo
 import kotlinx.cinterop.memScoped
@@ -22,7 +23,12 @@ actual class FDB private constructor() {
         val outDatabase = allocPointerTo<FDBDatabase>()
         checkError(fdb_create_database(clusterFile, outDatabase.ptr))
         val pointer = outDatabase.value ?: error("fdb_create_database returned null pointer")
-        Database(pointer)
+        try {
+            Database(pointer)
+        } catch (throwable: Throwable) {
+            fdb_database_destroy(pointer)
+            throw throwable
+        }
     }
 
     actual fun setUnclosedWarning(enabled: Boolean) {}
@@ -36,10 +42,7 @@ actual class FDB private constructor() {
 
         actual fun isAPIVersionSelected(): Boolean = NativeEnvironment.isApiSelected()
 
-        actual fun instance(): FDB {
-            NativeEnvironment.ensureNetwork()
-            return instance
-        }
+        actual fun instance(): FDB = instance
 
         actual fun selectAPIVersion(version: Int): FDB {
             NativeEnvironment.ensureApiVersion(version)

@@ -1,9 +1,10 @@
-@file:OptIn(ExperimentalForeignApi::class)
+@file:OptIn(ExperimentalForeignApi::class, ExperimentalAtomicApi::class)
 
 package maryk.foundationdb
 
 import foundationdb.c.FDBKeySelector
 import foundationdb.c.FDBKeyValue
+import foundationdb.c.FDBFuture
 import foundationdb.c.FDBMappedKeyValue
 import foundationdb.c.FDBTransaction
 import foundationdb.c.fdb_future_get_int64
@@ -15,6 +16,8 @@ import foundationdb.c.fdb_transaction_get
 import foundationdb.c.fdb_transaction_get_mapped_range
 import foundationdb.c.fdb_transaction_get_range
 import foundationdb.c.fdb_transaction_get_read_version
+import foundationdb.c.fdb_transaction_cancel
+import foundationdb.c.fdb_transaction_destroy
 import foundationdb.c.fdb_transaction_set_read_version
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -29,6 +32,8 @@ import kotlinx.cinterop.ptr
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.value
 import kotlinx.coroutines.runBlocking
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import maryk.foundationdb.async.AsyncIterable
 import maryk.foundationdb.async.AsyncIterator
 import kotlin.collections.ArrayDeque
@@ -186,14 +191,21 @@ private class StreamingMappedRangeIterator(
 }
 
 actual open class ReadTransaction internal constructor(
-    internal val pointer: CPointer<FDBTransaction>,
+    internal val handle: NativeTransactionHandle,
     internal val snapshot: Boolean
 ) {
+    internal constructor(pointer: CPointer<FDBTransaction>, snapshot: Boolean) : this(
+        NativeTransactionHandle(pointer),
+        snapshot
+    )
+
     actual fun get(key: ByteArray): FdbFuture<ByteArray?> {
-        val future = key.withPointer { ptr, len ->
-            fdb_transaction_get(pointer, ptr, len, snapshot.toFdbBool())
+        val future = handle.usePointerForFuture { pointer ->
+            key.withPointer { ptr, len ->
+                fdb_transaction_get(pointer, ptr, len, snapshot.toFdbBool())
+            }
         } ?: error("fdb_transaction_get returned null future")
-        return NativeFuture(future) { fut ->
+        return NativeFuture(future, onCleanup = handle::releaseFutureUse) { fut ->
             val present = alloc<IntVar>()
             val outValue = allocPointerTo<UByteVar>()
             val outLength = alloc<IntVar>()
@@ -327,8 +339,10 @@ actual open class ReadTransaction internal constructor(
         mappedRangeAsyncIterable(begin, end, mapper, limit, reverse, streamingMode)
 
     actual fun getReadVersion(): FdbFuture<Long> {
-        val future = fdb_transaction_get_read_version(pointer) ?: error("fdb_transaction_get_read_version returned null future")
-        return NativeFuture(future) { fut ->
+        val future = handle.usePointerForFuture { pointer ->
+            fdb_transaction_get_read_version(pointer)
+        } ?: error("fdb_transaction_get_read_version returned null future")
+        return NativeFuture(future, onCleanup = handle::releaseFutureUse) { fut ->
             val out = alloc<LongVar>()
             checkError(fdb_future_get_int64(fut, out.ptr))
             out.value
@@ -336,7 +350,9 @@ actual open class ReadTransaction internal constructor(
     }
 
     actual fun setReadVersion(version: Long) {
-        fdb_transaction_set_read_version(pointer, version)
+        handle.usePointer { pointer ->
+            fdb_transaction_set_read_version(pointer, version)
+        }
     }
 
     actual fun addReadConflictKeyIfNotSnapshot(key: ByteArray): Boolean {
@@ -352,28 +368,140 @@ actual open class ReadTransaction internal constructor(
     }
 
     private fun addConflictRange(beginKey: ByteArray, endKey: ByteArray, type: ConflictRangeType) {
-        beginKey.withPointer { beginPtr, beginLen ->
-            endKey.withPointer { endPtr, endLen ->
-                checkError(
-                    fdb_transaction_add_conflict_range(
-                        pointer,
-                        beginPtr,
-                        beginLen,
-                        endPtr,
-                        endLen,
-                        type.toNative()
+        handle.usePointer { pointer ->
+            beginKey.withPointer { beginPtr, beginLen ->
+                endKey.withPointer { endPtr, endLen ->
+                    checkError(
+                        fdb_transaction_add_conflict_range(
+                            pointer,
+                            beginPtr,
+                            beginLen,
+                            endPtr,
+                            endLen,
+                            type.toNative()
+                        )
                     )
-                )
+                }
             }
         }
     }
 
-    actual fun snapshot(): ReadTransaction = ReadTransaction(pointer, snapshot = true)
+    actual fun snapshot(): ReadTransaction {
+        handle.checkOpen()
+        return ReadTransaction(handle, snapshot = true)
+    }
 
-    actual open fun options(): TransactionOptions = TransactionOptions(pointer)
+    actual open fun options(): TransactionOptions = TransactionOptions(handle)
 
 actual companion object {
         actual val ROW_LIMIT_UNLIMITED: Int = 0
+    }
+}
+
+internal class NativeTransactionHandle(private val pointer: CPointer<FDBTransaction>) {
+    private val closed = AtomicInt(0)
+    private val destroyed = AtomicInt(0)
+    private val activeUses = AtomicInt(0)
+    private val nonCancellableUses = AtomicInt(0)
+
+    fun checkOpen() {
+        check(closed.load() == 0) { "Transaction is closed." }
+    }
+
+    fun <T> usePointer(block: (CPointer<FDBTransaction>) -> T): T {
+        enterUse()
+        try {
+            return block(pointer)
+        } finally {
+            exitUse()
+        }
+    }
+
+    fun usePointerForFuture(
+        cancelOnClose: Boolean = true,
+        block: (CPointer<FDBTransaction>) -> CPointer<FDBFuture>?
+    ): CPointer<FDBFuture>? {
+        enterUse()
+        var release = true
+        val nonCancellable = !cancelOnClose
+        if (nonCancellable) {
+            enterNonCancellableUse()
+        }
+        try {
+            val future = block(pointer)
+            if (future != null) {
+                release = false
+            }
+            return future
+        } finally {
+            if (release) {
+                if (nonCancellable) exitNonCancellableUse()
+                exitUse()
+            }
+        }
+    }
+
+    fun releaseFutureUse(cancelOnClose: Boolean = true) {
+        if (!cancelOnClose) {
+            exitNonCancellableUse()
+        }
+        exitUse()
+    }
+
+    fun close() {
+        if (closed.compareAndSet(0, 1)) {
+            if (nonCancellableUses.load() == 0) {
+                fdb_transaction_cancel(pointer)
+            }
+            tryDestroy()
+        }
+    }
+
+    private fun enterUse() {
+        while (true) {
+            checkOpen()
+            val current = activeUses.load()
+            if (activeUses.compareAndSet(current, current + 1)) {
+                if (closed.load() == 0) return
+                exitUse()
+                checkOpen()
+            }
+        }
+    }
+
+    private fun exitUse() {
+        while (true) {
+            val current = activeUses.load()
+            if (activeUses.compareAndSet(current, current - 1)) {
+                tryDestroy()
+                return
+            }
+        }
+    }
+
+    private fun enterNonCancellableUse() {
+        while (true) {
+            val current = nonCancellableUses.load()
+            if (nonCancellableUses.compareAndSet(current, current + 1)) return
+        }
+    }
+
+    private fun exitNonCancellableUse() {
+        while (true) {
+            val current = nonCancellableUses.load()
+            if (current == 0) return
+            if (nonCancellableUses.compareAndSet(current, current - 1)) return
+        }
+    }
+
+    private fun tryDestroy() {
+        if (
+            closed.load() != 0 &&
+            activeUses.load() == 0 &&
+            destroyed.compareAndSet(0, 1)
+        ) {
+            fdb_transaction_destroy(pointer)
+        }
     }
 }
 
@@ -585,29 +713,31 @@ private fun ReadTransaction.fetchRange(
     streamingMode: StreamingMode,
     iteration: Int
 ): FdbFuture<RangePage> {
-    val future = begin.key.withPointer { beginPtr, beginLen ->
-        end.key.withPointer { endPtr, endLen ->
-            fdb_transaction_get_range(
-                pointer,
-                beginPtr,
-                beginLen,
-                begin.orEqual.toFdbBool(),
-                begin.offset,
-                endPtr,
-                endLen,
-                end.orEqual.toFdbBool(),
-                end.offset,
-                limit,
-                0,
-                streamingMode.toNative(),
-                iteration,
-                snapshot.toFdbBool(),
-                reverse.toFdbBool()
-            )
+    val future = handle.usePointerForFuture { pointer ->
+        begin.key.withPointer { beginPtr, beginLen ->
+            end.key.withPointer { endPtr, endLen ->
+                fdb_transaction_get_range(
+                    pointer,
+                    beginPtr,
+                    beginLen,
+                    begin.orEqual.toFdbBool(),
+                    begin.offset,
+                    endPtr,
+                    endLen,
+                    end.orEqual.toFdbBool(),
+                    end.offset,
+                    limit,
+                    0,
+                    streamingMode.toNative(),
+                    iteration,
+                    snapshot.toFdbBool(),
+                    reverse.toFdbBool()
+                )
+            }
         }
     } ?: error("fdb_transaction_get_range returned null future")
 
-    return NativeFuture(future) { fut ->
+    return NativeFuture(future, onCleanup = handle::releaseFutureUse) { fut ->
         memScoped {
             val outKv = allocPointerTo<FDBKeyValue>()
             val outCount = alloc<IntVar>()
@@ -619,8 +749,8 @@ private fun ReadTransaction.fetchRange(
             if (pointer != null) {
                 for (idx in 0 until outCount.value) {
                     val kv = pointer[idx]
-                    val keyBytes = kv.key!!.readBytes(kv.key_length)
-                    val valueBytes = kv.value!!.readBytes(kv.value_length)
+                    val keyBytes = kv.key.readFdbBytes(kv.key_length, "key")
+                    val valueBytes = kv.value.readFdbBytes(kv.value_length, "value")
                     values += KeyValue(keyBytes, valueBytes)
                     lastKey = keyBytes
                 }
@@ -639,33 +769,35 @@ private fun ReadTransaction.fetchMappedRange(
     streamingMode: StreamingMode,
     iteration: Int
 ): FdbFuture<MappedRangePage> {
-    val future = begin.key.withPointer { beginPtr, beginLen ->
-        end.key.withPointer { endPtr, endLen ->
-            mapper.withPointer { mapperPtr, mapperLen ->
-                fdb_transaction_get_mapped_range(
-                    pointer,
-                    beginPtr,
-                    beginLen,
-                    begin.orEqual.toFdbBool(),
-                    begin.offset,
-                    endPtr,
-                    endLen,
-                    end.orEqual.toFdbBool(),
-                    end.offset,
-                    mapperPtr,
-                    mapperLen,
-                    limit,
-                    0,
-                    streamingMode.toNative(),
-                    iteration,
-                    snapshot.toFdbBool(),
-                    reverse.toFdbBool()
-                )
+    val future = handle.usePointerForFuture { pointer ->
+        begin.key.withPointer { beginPtr, beginLen ->
+            end.key.withPointer { endPtr, endLen ->
+                mapper.withPointer { mapperPtr, mapperLen ->
+                    fdb_transaction_get_mapped_range(
+                        pointer,
+                        beginPtr,
+                        beginLen,
+                        begin.orEqual.toFdbBool(),
+                        begin.offset,
+                        endPtr,
+                        endLen,
+                        end.orEqual.toFdbBool(),
+                        end.offset,
+                        mapperPtr,
+                        mapperLen,
+                        limit,
+                        0,
+                        streamingMode.toNative(),
+                        iteration,
+                        snapshot.toFdbBool(),
+                        reverse.toFdbBool()
+                    )
+                }
             }
         }
     } ?: error("fdb_transaction_get_mapped_range returned null future")
 
-    return NativeFuture(future) { fut ->
+    return NativeFuture(future, onCleanup = handle::releaseFutureUse) { fut ->
         memScoped {
             val outKv = allocPointerTo<FDBMappedKeyValue>()
             val outCount = alloc<IntVar>()
@@ -698,8 +830,8 @@ private fun FDBMappedKeyValue.toMappedKeyValue(): MappedKeyValue {
     if (dataPointer != null && count > 0) {
         for (idx in 0 until count) {
             val kv = dataPointer[idx]
-            val key = kv.key!!.readBytes(kv.key_length)
-            val value = kv.value!!.readBytes(kv.value_length)
+            val key = kv.key.readFdbBytes(kv.key_length, "key")
+            val value = kv.value.readFdbBytes(kv.value_length, "value")
             rangeValues += KeyValue(key, value)
         }
     }
@@ -716,3 +848,9 @@ private fun FDBKeySelector.toByteArray(): ByteArray = this.key.toByteArray()
 
 private fun foundationdb.c.FDBKey.toByteArray(): ByteArray =
     this.key?.readBytes(this.key_length) ?: ByteArray(0)
+
+private fun CPointer<UByteVar>?.readFdbBytes(length: Int, fieldName: String): ByteArray {
+    if (length == 0) return ByteArray(0)
+    return checkNotNull(this) { "FoundationDB returned null $fieldName pointer with length $length" }
+        .readBytes(length)
+}

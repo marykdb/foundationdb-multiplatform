@@ -41,12 +41,16 @@ import kotlinx.cinterop.value
 
 actual class NetworkOptions internal constructor() {
     private fun set(option: UInt) {
-        checkError(fdb_network_set_option(option, null, 0))
+        NativeEnvironment.setNetworkOption {
+            checkError(fdb_network_set_option(option, null, 0))
+        }
     }
 
     private fun set(option: UInt, bytes: ByteArray) {
-        bytes.withPointer { ptr, length ->
-            checkError(fdb_network_set_option(option, ptr, length))
+        NativeEnvironment.setNetworkOption {
+            bytes.withPointer { ptr, length ->
+                checkError(fdb_network_set_option(option, ptr, length))
+            }
         }
     }
 
@@ -56,7 +60,9 @@ actual class NetworkOptions internal constructor() {
         val ref = alloc<LongVar>()
         ref.value = value
         val ptr = ref.ptr.reinterpret<UByteVar>()
-        checkError(fdb_network_set_option(option, ptr, sizeOf<LongVar>().toInt()))
+        NativeEnvironment.setNetworkOption {
+            checkError(fdb_network_set_option(option, ptr, sizeOf<LongVar>().toInt()))
+        }
     }
 
     actual fun setTraceEnable(path: String?) {

@@ -33,14 +33,18 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.sizeOf
 import kotlinx.cinterop.value
 
-actual class DatabaseOptions internal constructor(private val pointer: CPointer<FDBDatabase>) : DatabaseOptionSink {
+actual class DatabaseOptions internal constructor(private val handle: NativeDatabaseHandle) : DatabaseOptionSink {
     private fun set(option: UInt) {
-        checkError(fdb_database_set_option(pointer, option, null, 0))
+        handle.usePointer { pointer ->
+            checkError(fdb_database_set_option(pointer, option, null, 0))
+        }
     }
 
     private fun set(option: UInt, bytes: ByteArray) {
-        bytes.withPointer { ptr, length ->
-            checkError(fdb_database_set_option(pointer, option, ptr, length))
+        handle.usePointer { pointer ->
+            bytes.withPointer { ptr, length ->
+                checkError(fdb_database_set_option(pointer, option, ptr, length))
+            }
         }
     }
 
@@ -48,7 +52,9 @@ actual class DatabaseOptions internal constructor(private val pointer: CPointer<
         val ref = alloc<LongVar>()
         ref.value = value
         val ptr = ref.ptr.reinterpret<UByteVar>()
-        checkError(fdb_database_set_option(pointer, option, ptr, sizeOf<LongVar>().toInt()))
+        handle.usePointer { pointer ->
+            checkError(fdb_database_set_option(pointer, option, ptr, sizeOf<LongVar>().toInt()))
+        }
     }
 
     actual override fun setLocationCacheSize(value: Long) = set(FDB_DB_OPTION_LOCATION_CACHE_SIZE, value)

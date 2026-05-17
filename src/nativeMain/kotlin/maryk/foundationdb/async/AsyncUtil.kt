@@ -18,9 +18,15 @@ actual object AsyncUtil {
 }
 
 private fun <T> AsyncIterator<T>.consumeAsync(consumer: (T) -> Unit): FdbFuture<Unit> = fdbFutureFromSuspend {
-    while (true) {
-        val more = onHasNext().await()
-        if (!more) break
-        consumer(next())
+    var completed = false
+    try {
+        while (true) {
+            val more = onHasNext().await()
+            if (!more) break
+            consumer(next())
+        }
+        completed = true
+    } finally {
+        if (!completed) cancel()
     }
 }

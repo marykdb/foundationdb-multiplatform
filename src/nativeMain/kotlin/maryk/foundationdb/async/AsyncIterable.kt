@@ -28,12 +28,18 @@ internal fun <T> asyncIterableOfList(items: List<T>): AsyncIterable<T> = AsyncIt
 
 internal fun <T> AsyncIterator<T>.collectAllAsync(): FdbFuture<List<T>> = fdbFutureFromSuspend {
     val collected = mutableListOf<T>()
-    while (true) {
-        val more = onHasNext().await()
-        if (!more) break
-        collected += next()
+    var completed = false
+    try {
+        while (true) {
+            val more = onHasNext().await()
+            if (!more) break
+            collected += next()
+        }
+        completed = true
+        collected
+    } finally {
+        if (!completed) cancel()
     }
-    collected
 }
 
 internal fun <T> runBlockingNext(iterator: AsyncIterator<T>): T = runCatching {

@@ -23,17 +23,20 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
+import platform.posix.sched_yield
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 private var supervisorJob = SupervisorJob()
 private var futureScope = CoroutineScope(supervisorJob + Dispatchers.Default)
+private val futureScopeLock = AtomicInt(UNSET)
+private val nativeCallbackScope = CoroutineScope(Dispatchers.Default)
 private const val UNSET = 0
 private const val SET = 1
 
 internal class NativeFuture<T>(
     private val pointer: CPointer<FDBFuture>,
+    private val onCleanup: () -> Unit = {},
     private val extractor: MemScope.(CPointer<FDBFuture>) -> T
 ) : FdbFuture<T> {
     private val deferred = CompletableDeferred<T>()
@@ -43,31 +46,39 @@ internal class NativeFuture<T>(
     private val activeCancels = AtomicInt(0)
 
     init {
-        checkError(fdb_future_set_callback(pointer, callback, ref.asCPointer()))
+        try {
+            checkError(fdb_future_set_callback(pointer, callback, ref.asCPointer()))
+        } catch (throwable: Throwable) {
+            cleanupNativeFuture(pointer)
+            throw throwable
+        }
     }
 
     private fun completeFromCallback(future: CPointer<FDBFuture>) {
         if (!callbackClaimed.compareAndSet(UNSET, SET)) return
-        futureScope.launch {
-            try {
-                val result = memScoped {
-                    val error = fdb_future_get_error(future)
-                    if (error != 0) throw FDBException(error)
-                    extractor(future)
-                }
-                deferred.complete(result)
-            } catch (t: Throwable) {
-                deferred.completeExceptionally(t)
-            } finally {
-                withContext(NonCancellable) {
-                    destroyed.compareAndSet(UNSET, SET)
-                    while (activeCancels.load() != 0) {
-                        yield()
+        try {
+            nativeCallbackScope.launch {
+                val outcome = try {
+                    val result = memScoped {
+                        val error = fdb_future_get_error(future)
+                        if (error != 0) throw FDBException(error)
+                        extractor(future)
                     }
-                    fdb_future_destroy(future)
-                    ref.dispose()
+                    Result.success(result)
+                } catch (t: Throwable) {
+                    Result.failure(t)
                 }
+                withContext(NonCancellable) {
+                    cleanupNativeFuture(future)
+                }
+                outcome.fold(
+                    onSuccess = { deferred.complete(it) },
+                    onFailure = { deferred.completeExceptionally(it) }
+                )
             }
+        } catch (throwable: Throwable) {
+            cleanupNativeFuture(future)
+            deferred.completeExceptionally(throwable)
         }
     }
 
@@ -91,10 +102,23 @@ internal class NativeFuture<T>(
 
     companion object {
         private val callback = staticCFunction { future: CPointer<FDBFuture>?, userData: COpaquePointer? ->
-            if (future != null && userData != null) {
-                val owner = userData.asStableRef<NativeFuture<*>>()
-                owner.get().completeFromCallback(future)
+            try {
+                if (future != null && userData != null) {
+                    val owner = userData.asStableRef<NativeFuture<*>>()
+                    owner.get().completeFromCallback(future)
+                }
+            } catch (_: Throwable) {
+                if (future != null && userData != null) {
+                    try {
+                        userData.asStableRef<NativeFuture<*>>().get().cleanupNativeFuture(future)
+                    } catch (_: Throwable) {
+                        fdb_future_destroy(future)
+                    }
+                } else {
+                    future?.let { fdb_future_destroy(it) }
+                }
             }
+            Unit
         }
     }
 
@@ -112,15 +136,28 @@ internal class NativeFuture<T>(
             if (activeCancels.compareAndSet(current, current - 1)) return
         }
     }
+
+    private fun cleanupNativeFuture(future: CPointer<FDBFuture>) {
+        if (destroyed.compareAndSet(UNSET, SET)) {
+            while (activeCancels.load() != 0) {
+                sched_yield()
+            }
+            fdb_future_destroy(future)
+            ref.dispose()
+            onCleanup()
+        }
+    }
 }
 
 internal actual fun <T> fdbFutureFromSuspend(block: suspend () -> T): FdbFuture<T> {
     val deferred = CompletableDeferred<T>()
-    val job = futureScope.launch {
-        try {
-            deferred.complete(block())
-        } catch (t: Throwable) {
-            deferred.completeExceptionally(t)
+    val job = withFutureScopeLock {
+        futureScope.launch {
+            try {
+                deferred.complete(block())
+            } catch (t: Throwable) {
+                deferred.completeExceptionally(t)
+            }
         }
     }
     deferred.invokeOnCompletion {
@@ -137,7 +174,20 @@ internal actual fun <T> fdbFutureFromSuspend(block: suspend () -> T): FdbFuture<
 internal fun <T> FdbFuture<T>.awaitBlocking(): T = runBlocking { await() }
 
 internal fun resetNativeFutureScope() {
-    supervisorJob.cancel()
-    supervisorJob = SupervisorJob()
-    futureScope = CoroutineScope(supervisorJob + Dispatchers.Default)
+    withFutureScopeLock {
+        supervisorJob.cancel()
+        supervisorJob = SupervisorJob()
+        futureScope = CoroutineScope(supervisorJob + Dispatchers.Default)
+    }
+}
+
+private inline fun <T> withFutureScopeLock(block: () -> T): T {
+    while (!futureScopeLock.compareAndSet(UNSET, SET)) {
+        sched_yield()
+    }
+    try {
+        return block()
+    } finally {
+        futureScopeLock.store(UNSET)
+    }
 }
