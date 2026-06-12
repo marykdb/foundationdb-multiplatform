@@ -17,7 +17,7 @@ LOG_DIR="$ROOT_DIR/build/testdatastore/logs"
 PID_FILE="$ROOT_DIR/build/testdatastore/fdbserver.pid"
 
 FDB_LISTEN="${FDB_LISTEN:-127.0.0.1:4500}"
-FDB_VERSION_DEFAULT="7.3.73"
+FDB_VERSION_DEFAULT="7.3.75"
 FDB_VERSION="${FDB_VERSION:-$FDB_VERSION_DEFAULT}"
 
 mkdir -p "$DATA_DIR" "$LOG_DIR"

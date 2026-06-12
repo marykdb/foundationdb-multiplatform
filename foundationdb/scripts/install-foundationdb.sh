@@ -18,7 +18,7 @@ BIN_DIR="$ROOT_DIR/foundationdb/bin"
 LIB_DIR="$BIN_DIR/lib"
 VERSION_FILE="$BIN_DIR/.fdb-version"
 
-FDB_VERSION_DEFAULT="7.3.73"
+FDB_VERSION_DEFAULT="7.3.75"
 FDB_VERSION="${FDB_VERSION:-$FDB_VERSION_DEFAULT}"
 
 if [[ "${1:-}" == "--version" && -n "${2:-}" ]]; then

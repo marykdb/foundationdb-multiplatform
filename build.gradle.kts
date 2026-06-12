@@ -9,8 +9,8 @@ import java.nio.file.StandardCopyOption
 import java.util.Properties
 
 plugins {
-    kotlin("multiplatform") version "2.2.21"
-    id("com.vanniktech.maven.publish") version "0.35.0"
+    kotlin("multiplatform") version "2.4.0"
+    id("com.vanniktech.maven.publish") version "0.36.0"
     id("org.jetbrains.kotlinx.kover") version "0.9.8"
 }
 
@@ -31,17 +31,17 @@ if (localPropertiesFile.isFile) {
     }
 }
 
-val coroutinesVersion = "1.10.2"
+val coroutinesVersion = "1.11.0"
 val foundationDbDir = rootProject.projectDir.resolve("foundationdb")
 val foundationDbScriptsDir = foundationDbDir.resolve("scripts")
-val foundationDbVersion = "7.3.73"
+val foundationDbVersion = "7.3.75"
 val foundationDbJavaVersion = foundationDbVersion
 val foundationDbNativeDir = layout.buildDirectory.dir("foundationdb")
 val foundationDbApiVersion = 730
 val foundationDbReleaseBranch = "release-${foundationDbVersion.substringBeforeLast('.')}"
 
 group = "io.maryk.foundationdb"
-version = "7.3.73"
+version = "7.3.75"
 
 extensions.extraProperties["foundationDbVersion"] = foundationDbVersion
 extensions.extraProperties["foundationDbNativeDir"] = foundationDbNativeDir
