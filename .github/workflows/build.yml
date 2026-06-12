@@ -19,7 +19,7 @@ jobs:
             display-name: macOS Arm
             gradle-tasks: macosArm64Test jvmTest
             shell: bash
-          - os: macos-15-intel
+          - os: macos-26-intel
             display-name: macOS Intel
             gradle-tasks: macosX64Test jvmTest
             shell: bash
