@@ -48,7 +48,7 @@ before running your binaries; the provided scripts under `foundationdb/scripts` 
 ```kotlin
 fun main() {
     // Pick the API version once per process and grab a singleton
-    FDB.selectAPIVersion(ApiVersion.LATEST.apiVersion)
+    FDB.selectAPIVersion(ApiVersion.LATEST)
     val fdb = FDB.instance()
 
     // Execute a transactional block with automatic retries
