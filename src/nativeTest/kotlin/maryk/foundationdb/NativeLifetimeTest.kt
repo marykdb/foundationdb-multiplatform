@@ -105,6 +105,38 @@ class NativeLifetimeTest {
     }
 
     @Test
+    fun databaseCloseAfterAwaitedNativeFuturesIsStable() {
+        runBlocking {
+            FDB.selectAPIVersion(ApiVersion.LATEST)
+            repeat(100) { index ->
+                val database = FDB.instance().open()
+                val transaction = database.createTransaction()
+                try {
+                    assertEquals(null, transaction.get("native-awaited-close-$index".encodeToByteArray()).await())
+                } finally {
+                    transaction.close()
+                    database.close()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun databaseCloseAfterCancelledWatchIsStable() {
+        FDB.selectAPIVersion(ApiVersion.LATEST)
+        repeat(100) { index ->
+            val database = FDB.instance().open()
+            val transaction = database.createTransaction()
+            try {
+                transaction.watch("native-watch-close-$index".encodeToByteArray()).cancel()
+            } finally {
+                transaction.close()
+                database.close()
+            }
+        }
+    }
+
+    @Test
     fun rangeExtractionHandlesEmptyValues() {
         runBlocking {
             FDB.selectAPIVersion(ApiVersion.LATEST)
