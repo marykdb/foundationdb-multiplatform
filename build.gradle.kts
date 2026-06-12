@@ -6,6 +6,7 @@ import java.net.URI
 import java.security.MessageDigest
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.Properties
 
 plugins {
     kotlin("multiplatform") version "2.2.21"
@@ -15,6 +16,19 @@ plugins {
 
 repositories {
     mavenCentral()
+}
+
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.isFile) {
+    Properties().apply {
+        localPropertiesFile.inputStream().use(::load)
+    }.forEach { key, value ->
+        val name = key.toString()
+        val stringValue = value.toString()
+        if (!extensions.extraProperties.has(name)) {
+            extensions.extraProperties[name] = stringValue
+        }
+    }
 }
 
 val coroutinesVersion = "1.10.2"

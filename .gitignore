@@ -1,4 +1,5 @@
 .gradle
+local.properties
 build/
 foundationdb/bin/
 foundationdb/bin/**
