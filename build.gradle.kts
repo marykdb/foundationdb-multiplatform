@@ -34,14 +34,14 @@ if (localPropertiesFile.isFile) {
 val coroutinesVersion = "1.11.0"
 val foundationDbDir = rootProject.projectDir.resolve("foundationdb")
 val foundationDbScriptsDir = foundationDbDir.resolve("scripts")
-val foundationDbVersion = "7.3.75"
+val foundationDbVersion = "7.3.79"
 val foundationDbJavaVersion = foundationDbVersion
 val foundationDbNativeDir = layout.buildDirectory.dir("foundationdb")
 val foundationDbApiVersion = 730
 val foundationDbReleaseBranch = "release-${foundationDbVersion.substringBeforeLast('.')}"
 
 group = "io.maryk.foundationdb"
-version = "7.3.75"
+version = "7.3.79"
 
 extensions.extraProperties["foundationDbVersion"] = foundationDbVersion
 extensions.extraProperties["foundationDbNativeDir"] = foundationDbNativeDir
