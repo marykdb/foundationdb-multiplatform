@@ -17,15 +17,27 @@ jobs:
         include:
           - os: macos-latest
             display-name: macOS Arm
-            gradle-tasks: macosArm64Test jvmTest
+            command: ./gradlew --stacktrace --info macosArm64Test jvmTest
             shell: bash
           - os: macos-26-intel
             display-name: macOS Intel
-            gradle-tasks: macosX64Test jvmTest
+            command: ./gradlew --stacktrace --info macosX64Test jvmTest
             shell: bash
           - os: ubuntu-latest
-            display-name: Linux
-            gradle-tasks: linuxX64Test jvmTest
+            display-name: Linux x64
+            command: ./gradlew --stacktrace --info linuxX64Test jvmTest
+            shell: bash
+          - os: ubuntu-24.04-arm
+            display-name: Linux Arm64 FoundationDB smoke
+            command: |
+              set -euo pipefail
+              trap 'FDB_CLEAN_MODE=all bash foundationdb/scripts/stop-fdb-for-tests.sh' EXIT
+              bash foundationdb/scripts/install-foundationdb.sh
+              file foundationdb/bin/fdbserver foundationdb/bin/fdbcli foundationdb/bin/lib/libfdb_c.so | grep -q 'ARM aarch64'
+              foundationdb/bin/fdbserver --version
+              foundationdb/bin/fdbcli --version
+              bash foundationdb/scripts/run-fdb-for-tests.sh
+              FDB_CLUSTER_FILE="$PWD/foundationdb/fdb.cluster" foundationdb/bin/fdbcli --exec 'status minimal' | grep -q 'The database is available'
             shell: bash
     name: ${{ matrix.display-name }}
     runs-on: ${{ matrix.os }}
@@ -45,5 +57,5 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Run ${{ matrix.display-name }} tests
-        run: ./gradlew --stacktrace --info ${{ matrix.gradle-tasks }}
+      - name: Run ${{ matrix.display-name }}
+        run: ${{ matrix.command }}

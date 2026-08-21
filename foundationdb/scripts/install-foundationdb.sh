@@ -261,7 +261,7 @@ install_linux_from_deb() {
   local deb_arch
   case "$arch" in
     x86_64|amd64) deb_arch="amd64";;
-    aarch64|arm64) deb_arch="arm64";;
+    aarch64|arm64) deb_arch="aarch64";;
     *) err "Unsupported Linux arch: $arch";;
   esac
 
