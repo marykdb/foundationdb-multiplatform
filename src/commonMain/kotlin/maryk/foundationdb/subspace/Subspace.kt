@@ -6,27 +6,30 @@ import maryk.foundationdb.tuple.Tuple
 /**
  * Namespace helper that prefixes packed tuples with a fixed byte prefix.
  */
-expect class Subspace {
+expect open class Subspace {
     constructor()
     constructor(prefix: Tuple)
     constructor(rawPrefix: ByteArray)
     constructor(prefix: Tuple, rawPrefix: ByteArray)
 
-    fun get(obj: Any?): Subspace
-    fun get(tuple: Tuple): Subspace
+    open fun get(obj: Any?): Subspace
+    open fun get(tuple: Tuple): Subspace
 
-    fun getKey(): ByteArray
-    fun pack(): ByteArray
-    fun pack(value: Any?): ByteArray
-    fun pack(tuple: Tuple): ByteArray
-    fun packWithVersionstamp(tuple: Tuple): ByteArray
+    open fun getKey(): ByteArray
+    open fun pack(): ByteArray
+    open fun pack(value: Any?): ByteArray
+    open fun pack(tuple: Tuple): ByteArray
+    open fun packWithVersionstamp(tuple: Tuple): ByteArray
 
-    fun unpack(key: ByteArray): Tuple
+    open fun unpack(key: ByteArray): Tuple
 
-    fun range(): Range
-    fun range(tuple: Tuple): Range
+    open fun range(): Range
+    open fun range(tuple: Tuple): Range
 
-    fun contains(key: ByteArray): Boolean
+    open fun contains(key: ByteArray): Boolean
 
-    fun subspace(tuple: Tuple): Subspace
+    open fun subspace(tuple: Tuple): Subspace
+    override fun equals(other: Any?): Boolean
+    override fun hashCode(): Int
+
 }

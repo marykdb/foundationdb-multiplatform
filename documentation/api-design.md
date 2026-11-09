@@ -94,6 +94,20 @@ is thread-safe. Native records explicitly submitted events and does not synthesi
 Java/JNI/direct-buffer metrics. JVM adapters forward Java instrumentation to the common
 keeper. Enable instrumentation explicitly when opening a JVM database or transaction.
 
+## Upgrade compatibility
+
+Directory and asynchronous iteration contracts are implementable interfaces.
+`DirectorySubspace` is both a `Subspace` and a `Directory`; partition roots reject
+namespace operations. Existing consumers need recompilation for these hierarchy changes.
+
+Native mixed-prefix subspaces and old directory partitions require explicit upgrade
+handling. Canonical Native access to recognizable old partition metadata throws
+`DirectoryMigrationRequiredException`, a `DirectoryVersionException` subtype. There is
+no equivalent JVM detector or reliable inference for arbitrary raw keys. Read the
+[short Native upgrade guide](native-layout-upgrade.md) and
+[migration details](migrations.md) before opening affected data. The offline migration
+runner verifies copied data, retains the source and leaves application cutover explicit.
+
 The optional Native counter benchmark runs with
 `-PfoundationDbNativeTestFilter=maryk.foundationdb.MetricsBenchmarkNativeTest.*`.
 Timing results are diagnostic rather than performance assertions.

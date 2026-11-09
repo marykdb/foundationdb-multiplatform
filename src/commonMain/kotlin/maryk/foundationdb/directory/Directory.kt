@@ -4,7 +4,8 @@ import maryk.foundationdb.FdbFuture
 import maryk.foundationdb.ReadTransactionContext
 import maryk.foundationdb.TransactionContext
 
-expect class Directory {
+interface Directory {
+    fun getDirectoryLayer(): DirectoryLayer
     val path: List<String>
     val layer: ByteArray
 

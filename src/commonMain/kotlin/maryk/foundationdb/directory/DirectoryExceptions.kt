@@ -28,4 +28,16 @@ class DirectoryMoveException(
     "$message: sourcePath=${DirectoryUtil.pathStr(sourcePath)}, destPath=${DirectoryUtil.pathStr(destPath)}"
 )
 
-class DirectoryVersionException(message: String) : RuntimeException(message)
+open class DirectoryVersionException(message: String) : RuntimeException(message)
+
+/** Canonical Native access found recognizable legacy partition metadata. */
+class DirectoryMigrationRequiredException(
+    path: List<String>,
+    val detectedLayout: DirectoryLayout,
+) : DirectoryVersionException(
+    "Legacy Native partition metadata detected at ${DirectoryUtil.pathStr(path)} ($detectedLayout); " +
+        "stop writers and run an offline DirectoryTreeMigration before canonical access",
+) {
+    private val storedPath = path.toList()
+    val path: List<String> get() = storedPath.toList()
+}

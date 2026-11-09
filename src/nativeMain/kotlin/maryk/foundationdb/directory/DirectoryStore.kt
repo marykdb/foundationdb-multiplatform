@@ -46,33 +46,41 @@ internal object DirectoryStore {
     ): DirectorySubspace = createOrOpenInternal(transaction, path, layer, prefixOverride, allowCreate = true, allowOpen = false, context = context)
 
     suspend fun openDirectory(readTransaction: ReadTransaction, path: List<String>, layer: ByteArray, context: DirectoryContext): DirectorySubspace? {
+        route(readTransaction, path, context, false)?.let { return openDirectory(readTransaction, it.second, layer, it.first) }
         verifyVersion(readTransaction, writeAccess = false, context = context)
         if (path.isEmpty()) throw DirectoryVersionException("Cannot open root directory")
         val node = find(readTransaction, path, context)
         if (!node.exists) return null
         validateLayer(node.layer, layer, path)
+        if (node.layer.contentEquals(PARTITION_LAYER)) validatePartitionLayout(readTransaction, dataPrefix(node.subspace!!, context), context, path)
         return buildDirectorySubspace(node, context)
     }
 
     suspend fun exists(readTransaction: ReadTransaction, path: List<String>, layer: ByteArray, context: DirectoryContext): Boolean {
+        route(readTransaction, path, context, false)?.let { return exists(readTransaction, it.second, layer, it.first) }
         verifyVersion(readTransaction, writeAccess = false, context = context)
         val node = find(readTransaction, path, context)
         if (!node.exists) return false
         validateLayer(node.layer, layer, path)
+        if (node.layer.contentEquals(PARTITION_LAYER)) validatePartitionLayout(readTransaction, dataPrefix(node.subspace!!, context), context, path)
         return true
     }
 
     suspend fun remove(transaction: Transaction, path: List<String>, context: DirectoryContext): Boolean {
+        requireWritableLayout(context)
+        route(transaction, path, context, false)?.let { return remove(transaction, it.second, it.first) }
         verifyVersion(transaction, writeAccess = true, context = context)
         if (path.isEmpty()) throw DirectoryVersionException("Cannot remove root directory")
         val node = find(transaction, path, context)
         if (!node.exists) return false
-        removeRecursive(transaction, node.subspace!!, context)
+        if (node.layer.contentEquals(PARTITION_LAYER)) validatePartitionLayout(transaction, dataPrefix(node.subspace!!, context), context, path)
+        removeRecursive(transaction, node.subspace!!, context, path)
         removeFromParent(transaction, path, context)
         return true
     }
 
     suspend fun listChildren(readTransaction: ReadTransaction, path: List<String>, limit: Int, context: DirectoryContext): List<String> {
+        route(readTransaction, path, context, true)?.let { return listChildren(readTransaction, it.second, limit, it.first) }
         verifyVersion(readTransaction, writeAccess = false, context = context)
         val node = find(readTransaction, path, context)
         if (!node.exists) throw NoSuchDirectoryException(path)
@@ -83,6 +91,15 @@ internal object DirectoryStore {
     }
 
     suspend fun move(transaction: Transaction, oldPath: List<String>, newPath: List<String>, context: DirectoryContext): DirectorySubspace {
+        requireWritableLayout(context)
+        val oldRoute = route(transaction, oldPath, context, false)
+        val newRoute = route(transaction, newPath, context, false)
+        if (oldRoute != null || newRoute != null) {
+            if (oldRoute == null || newRoute == null || oldRoute.first.pathPrefix != newRoute.first.pathPrefix) {
+                throw DirectoryMoveException(oldPath, newPath, "Cannot move between directory partitions")
+            }
+            return move(transaction, oldRoute.second, newRoute.second, oldRoute.first)
+        }
         verifyVersion(transaction, writeAccess = true, context = context)
         if (newPath.isEmpty()) throw DirectoryMoveException(oldPath, newPath, "Cannot move to root")
         if (oldPath == newPath) throw DirectoryMoveException(oldPath, newPath, "Source and destination must differ")
@@ -99,6 +116,7 @@ internal object DirectoryStore {
 
         val prefix = dataPrefix(oldNode.subspace!!, context)
         val layerData = oldNode.layer
+        if (layerData.contentEquals(PARTITION_LAYER)) validatePartitionLayout(transaction, prefix, context, oldPath)
 
         // update parent pointers
         val parentSubdir = newParent.subspace!!.get(SUB_DIR_KEY)
@@ -107,7 +125,7 @@ internal object DirectoryStore {
 
         removeFromParent(transaction, oldPath, context)
 
-        return DirectorySubspace(prefix, newPath, layerData, context)
+        return buildDirectorySubspace(Node(nodeWithPrefix(prefix, context), newPath, layerData, true), context)
     }
 
     private suspend fun createOrOpenInternal(
@@ -119,7 +137,10 @@ internal object DirectoryStore {
         allowOpen: Boolean,
         context: DirectoryContext
     ): DirectorySubspace {
-        verifyVersion(transaction, writeAccess = allowCreate, context = context)
+        route(transaction, path, context, false)?.let {
+            return createOrOpenInternal(transaction, it.second, layer, prefixOverride, allowCreate, allowOpen, it.first)
+        }
+        verifyVersion(transaction, writeAccess = allowCreate && context.layout != DirectoryLayout.LEGACY_NATIVE_FLAT_PARTITIONS, context = context)
         if (path.isEmpty()) throw DirectoryVersionException("Cannot open root directory")
 
         if (prefixOverride != null && !context.allowManualPrefixes) {
@@ -128,12 +149,14 @@ internal object DirectoryStore {
 
         val existing = find(transaction, path, context)
         if (existing.exists) {
+            if (existing.layer.contentEquals(PARTITION_LAYER)) validatePartitionLayout(transaction, dataPrefix(existing.subspace!!, context), context, path)
             validateLayer(existing.layer, layer, path)
             if (!allowOpen) throw DirectoryAlreadyExistsException(path)
             return buildDirectorySubspace(existing, context)
         }
 
         if (!allowCreate) throw NoSuchDirectoryException(path)
+        requireWritableLayout(context)
 
         val parentNode = ensureParent(transaction, path, context)
         val prefix = prefixOverride ?: allocatePrefix(transaction, context)
@@ -163,6 +186,49 @@ internal object DirectoryStore {
         HighContentionAllocator(rootNode(context).get(HCA_KEY)).allocate(transaction).let { context.contentSubspace.getKey() + it }
 
     private fun nodeWithPrefix(prefix: ByteArray, context: DirectoryContext): Subspace = context.nodeSubspace.get(prefix)
+
+    private fun requireWritableLayout(context: DirectoryContext) {
+        if (context.layout == DirectoryLayout.LEGACY_NATIVE_FLAT_PARTITIONS) throw DirectoryVersionException("Legacy flat partition layout is read-only; copy and verify it into a canonical layer before writing")
+    }
+
+    private suspend fun validatePartitionLayout(readTransaction: ReadTransaction, prefix: ByteArray, context: DirectoryContext, path: List<String>) {
+        val flatRange = nodeWithPrefix(prefix, context).get(SUB_DIR_KEY).range()
+        val hasFlatChildren = readTransaction.getRange(flatRange, 1).asList().await().isNotEmpty()
+        if (context.layout == DirectoryLayout.LEGACY_NATIVE_FLAT_PARTITIONS) {
+            for (layout in listOf(DirectoryLayout.JAVA_CANONICAL, DirectoryLayout.LEGACY_NATIVE)) {
+                val nested = context.copy(layout = layout).partition(prefix, emptyList())
+                if (readTransaction.get(rootNode(nested).pack(VERSION_KEY)).await() != null) throw DirectoryVersionException("Mixed flat and nested partition layouts require explicit reconciliation before migration")
+            }
+            return
+        }
+        if (hasFlatChildren) throw DirectoryMigrationRequiredException(context.pathPrefix + path, DirectoryLayout.LEGACY_NATIVE_FLAT_PARTITIONS)
+        val selected = context.partition(prefix, emptyList())
+        val otherLayout = if (context.layout == DirectoryLayout.JAVA_CANONICAL) DirectoryLayout.LEGACY_NATIVE else DirectoryLayout.JAVA_CANONICAL
+        val other = context.copy(layout = otherLayout).partition(prefix, emptyList())
+        val otherVersion = readTransaction.get(rootNode(other).pack(VERSION_KEY)).await()
+        if (otherVersion != null) {
+            val selectedVersion = readTransaction.get(rootNode(selected).pack(VERSION_KEY)).await()
+            if (selectedVersion == null) {
+                if (context.layout == DirectoryLayout.JAVA_CANONICAL) throw DirectoryMigrationRequiredException(context.pathPrefix + path, otherLayout)
+                throw DirectoryVersionException("Partition metadata uses the canonical layout; open it through the canonical directory API")
+            }
+            throw DirectoryVersionException("Partition contains both legacy and canonical metadata; resolve the mixed layout explicitly")
+        }
+    }
+
+    private suspend fun route(readTransaction: ReadTransaction, path: List<String>, context: DirectoryContext, includeLast: Boolean): Pair<DirectoryContext, List<String>>? {
+        val count = if (includeLast) path.size else path.size - 1
+        for (size in 1..count) {
+            val node = find(readTransaction, path.take(size), context)
+            if (!node.exists) return null
+            if (node.layer.contentEquals(PARTITION_LAYER)) {
+                validatePartitionLayout(readTransaction, dataPrefix(node.subspace!!, context), context, path.take(size))
+                if (context.layout == DirectoryLayout.LEGACY_NATIVE_FLAT_PARTITIONS) continue
+                return context.partition(dataPrefix(node.subspace!!, context), path.take(size)) to path.drop(size)
+            }
+        }
+        return null
+    }
 
     private suspend fun find(readTransaction: ReadTransaction, path: List<String>, context: DirectoryContext): Node {
         var node = Node(subspace = rootNode(context), path = emptyList(), exists = true)
@@ -203,14 +269,23 @@ internal object DirectoryStore {
         return Node(subspace, path, byteArrayOf(), hasAnyMetadata)
     }
 
-    private suspend fun removeRecursive(transaction: Transaction, nodeSubspace: Subspace, context: DirectoryContext) {
+    private suspend fun removeRecursive(transaction: Transaction, nodeSubspace: Subspace, context: DirectoryContext, path: List<String>) {
+        val layer = transaction.get(nodeSubspace.pack(LAYER_KEY)).await()
+        if (layer != null && layer.contentEquals(PARTITION_LAYER)) {
+            validatePartitionLayout(transaction, dataPrefix(nodeSubspace, context), context, path)
+            val nested = context.partition(dataPrefix(nodeSubspace, context), emptyList())
+            val nestedSubdir = rootNode(nested).get(SUB_DIR_KEY)
+            val children = transaction.collectRange(nestedSubdir.range().begin, nestedSubdir.range().end, 0, false).await()
+            for (child in children.values) removeRecursive(transaction, nodeWithPrefix(child.value, nested), nested, path + nestedSubdir.unpack(child.key).getString(0))
+            transaction.clear(nested.nodeSubspace.range())
+        }
         val subdir = nodeSubspace.get(SUB_DIR_KEY)
         val range = subdir.range()
         val children = transaction.collectRange(range.begin, range.end, 0, reverse = false, streamingMode = StreamingMode.WANT_ALL).await()
         for (kv in children.values) {
             val childPrefix = kv.value
             val childNode = nodeWithPrefix(childPrefix, context)
-            removeRecursive(transaction, childNode, context)
+            removeRecursive(transaction, childNode, context, path + subdir.unpack(kv.key).getString(0))
         }
 
         val prefix = dataPrefix(nodeSubspace, context)
@@ -247,7 +322,7 @@ internal object DirectoryStore {
         context.nodeSubspace.unpack(nodeSubspace.getKey()).getBytes(0)
 
     private fun validateLayer(stored: ByteArray, requested: ByteArray, path: List<String>) {
-        if (stored.isEmpty() || requested.isEmpty()) return
+        if (requested.isEmpty()) return
         if (!stored.contentEquals(requested)) {
             throw MismatchedLayerException(path, stored, requested)
         }
@@ -265,9 +340,10 @@ internal object DirectoryStore {
             }
             return
         }
-        if (!stored.contentEquals(VERSION_BYTES)) {
-            throw DirectoryVersionException("Directory layer version mismatch")
-        }
+        if (stored.size < VERSION_BYTES.size) throw DirectoryVersionException("Truncated directory layer version")
+        fun component(offset: Int): Int = (0 until 4).fold(0) { value, index -> value or ((stored[offset + index].toInt() and 255) shl (index * 8)) }
+        if (component(0) > 1) throw DirectoryVersionException("Directory layer major version is not supported")
+        if (writeAccess && component(4) > 0) throw DirectoryVersionException("Directory layer minor version is read-only")
     }
 
     private suspend fun ensurePrefixEmpty(transaction: Transaction, prefix: ByteArray) {
@@ -312,9 +388,9 @@ internal object DirectoryStore {
     private fun buildDirectorySubspace(node: Node, context: DirectoryContext): DirectorySubspace {
         val prefix = dataPrefix(node.subspace!!, context)
         return if (node.layer.contentEquals(PARTITION_LAYER)) {
-            PartitionDirectorySubspace(prefix, node.path, node.layer, context)
+            PartitionDirectorySubspace(prefix, context.pathPrefix + node.path, node.layer, context)
         } else {
-            DirectorySubspace(prefix, node.path, node.layer, context)
+            DirectorySubspace(prefix, context.pathPrefix + node.path, node.layer, context)
         }
     }
 

@@ -4,60 +4,54 @@ import maryk.foundationdb.Range
 import maryk.foundationdb.nextKey
 import maryk.foundationdb.tuple.Tuple
 
-actual class Subspace {
-    private val prefixBytes: ByteArray
+actual open class Subspace {
+    private val storedPrefixBytes: ByteArray
+    private val prefixBytes: ByteArray get() { checkUsable(); return storedPrefixBytes }
+    protected open fun checkUsable() = Unit
 
     actual constructor() {
-        prefixBytes = ByteArray(0)
+        storedPrefixBytes = ByteArray(0)
     }
 
     actual constructor(prefix: Tuple) {
-        prefixBytes = prefix.pack()
+        storedPrefixBytes = prefix.pack()
     }
 
     actual constructor(rawPrefix: ByteArray) {
-        prefixBytes = rawPrefix.copyOf()
+        storedPrefixBytes = rawPrefix.copyOf()
     }
 
     actual constructor(prefix: Tuple, rawPrefix: ByteArray) {
-        prefixBytes = prefix.pack() + rawPrefix
+        storedPrefixBytes = rawPrefix + prefix.pack()
     }
 
-    actual fun get(obj: Any?): Subspace =
+    actual open fun get(obj: Any?): Subspace =
         Subspace(prefixBytes + Tuple.from(obj).pack())
 
-    actual fun get(tuple: Tuple): Subspace = Subspace(prefixBytes + tuple.pack())
+    actual open fun get(tuple: Tuple): Subspace = Subspace(prefixBytes + tuple.pack())
 
-    actual fun getKey(): ByteArray = prefixBytes.copyOf()
+    actual open fun getKey(): ByteArray = prefixBytes.copyOf()
 
-    actual fun pack(): ByteArray = prefixBytes.copyOf()
+    actual open fun pack(): ByteArray = prefixBytes.copyOf()
 
-    actual fun pack(value: Any?): ByteArray = prefixBytes + Tuple.from(value).pack()
+    actual open fun pack(value: Any?): ByteArray = prefixBytes + Tuple.from(value).pack()
 
-    actual fun pack(tuple: Tuple): ByteArray = prefixBytes + tuple.pack()
+    actual open fun pack(tuple: Tuple): ByteArray = prefixBytes + tuple.pack()
 
-    actual fun packWithVersionstamp(tuple: Tuple): ByteArray = prefixBytes + tuple.packWithVersionstamp()
+    actual open fun packWithVersionstamp(tuple: Tuple): ByteArray = tuple.packWithVersionstamp(prefixBytes)
 
-    actual fun unpack(key: ByteArray): Tuple {
+    actual open fun unpack(key: ByteArray): Tuple {
         require(contains(key)) { "Key does not belong to this subspace" }
-        val suffix = key.copyOfRange(prefixBytes.size, key.size)
-        return Tuple.fromBytes(suffix)
+        return Tuple.fromBytes(key, prefixBytes.size, key.size - prefixBytes.size)
     }
 
-    actual fun range(): Range {
-        val start = prefixBytes.copyOf()
-        val end = prefixBytes.nextKey()
-        return Range(start, end)
-    }
+    actual open fun range(): Range = Tuple.from().range(prefixBytes)
 
-    actual fun range(tuple: Tuple): Range {
-        val packed = pack(tuple)
-        return Range(packed, packed.nextKey())
-    }
+    actual open fun range(tuple: Tuple): Range = tuple.range(prefixBytes)
 
-    actual fun contains(key: ByteArray): Boolean = key.startsWith(prefixBytes)
+    actual open fun contains(key: ByteArray): Boolean = key.startsWith(prefixBytes)
 
-    actual fun subspace(tuple: Tuple): Subspace = Subspace(prefixBytes + tuple.pack())
+    actual open fun subspace(tuple: Tuple): Subspace = Subspace(prefixBytes + tuple.pack())
 
     private operator fun ByteArray.plus(other: ByteArray): ByteArray {
         val result = ByteArray(size + other.size)
@@ -73,4 +67,9 @@ actual class Subspace {
         }
         return true
     }
+
+    actual override fun equals(other: Any?): Boolean = other is Subspace && this::class == other::class && prefixBytes.contentEquals(other.prefixBytes)
+    actual override fun hashCode(): Int = prefixBytes.contentHashCode()
+
+
 }

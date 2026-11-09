@@ -17,19 +17,18 @@ internal class PartitionDirectorySubspace(
     layer: ByteArray,
     parentContext: DirectoryContext
 ) : DirectorySubspace(prefix, path, layer, parentContext) {
-    private val nestedContext = DirectoryContext(
-        nodeSubspace = parentContext.nodeSubspace.get(prefix),
-        contentSubspace = parentContext.contentSubspace.get(prefix),
-        allowManualPrefixes = parentContext.allowManualPrefixes
-    )
+    private val nestedContext = parentContext.partition(prefix, path.drop(parentContext.pathPrefix.size))
 
     private val nestedLayer = DirectoryLayer(nestedContext)
 
+    override fun getDirectoryLayer(): DirectoryLayer = nestedLayer
+    override fun checkUsable(): Unit = throw UnsupportedOperationException("Cannot use the root of a directory partition as a Subspace")
+
     override fun createOrOpen(transaction: Transaction, path: List<String>): FdbFuture<DirectorySubspace> =
-        nestedLayer.createOrOpen(transaction, path)
+        if (context.layout == DirectoryLayout.LEGACY_NATIVE_FLAT_PARTITIONS) super.createOrOpen(transaction, path) else nestedLayer.createOrOpen(transaction, path)
 
     override fun open(transaction: Transaction, path: List<String>): FdbFuture<DirectorySubspace> =
         fdbFutureFromSuspend {
-            nestedLayer.open(transaction, path).await()
+            if (context.layout == DirectoryLayout.LEGACY_NATIVE_FLAT_PARTITIONS) super.open(transaction, path).await() else nestedLayer.open(transaction, path).await()
         }
 }

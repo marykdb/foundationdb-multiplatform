@@ -1,32 +1,35 @@
 package maryk.foundationdb.directory
 
+import com.apple.foundationdb.directory.DirectorySubspace as JavaDirectorySubspace
+
 import maryk.foundationdb.FdbFuture
 import maryk.foundationdb.Transaction
-import maryk.foundationdb.toFdbFuture
+import maryk.foundationdb.subspace.Subspace
+import maryk.foundationdb.mapToFdbFuture
 import maryk.foundationdb.tuple.Tuple
 
 actual open class DirectorySubspace internal constructor(
-    internal val delegate: com.apple.foundationdb.directory.DirectorySubspace
-) {
-    actual val path: List<String>
-        get() = delegate.path
+    internal val directoryDelegate: JavaDirectorySubspace
+) : Subspace(directoryDelegate), Directory by Directory(directoryDelegate) {
+    actual override val path: List<String>
+        get() = directoryDelegate.path
 
-    actual val layer: ByteArray
-        get() = delegate.layer
+    actual override val layer: ByteArray
+        get() = directoryDelegate.layer
 
-    actual fun pack(): ByteArray = delegate.pack()
+    actual override fun pack(): ByteArray = directoryDelegate.pack()
 
-    actual fun pack(tuple: Tuple): ByteArray = delegate.pack(tuple.delegate)
+    actual override fun pack(tuple: Tuple): ByteArray = directoryDelegate.pack(tuple.delegate)
 
     actual fun createOrOpen(transaction: Transaction, path: List<String>): FdbFuture<DirectorySubspace> =
-        delegate.createOrOpen(transaction.delegate, path)
-            .thenApply(::DirectorySubspace)
-            .toFdbFuture()
+        directoryDelegate.createOrOpen(transaction.delegate, path)
+            .mapDirectoryExceptions()
+            .mapToFdbFuture(::DirectorySubspace)
 
     actual fun open(transaction: Transaction, path: List<String>): FdbFuture<DirectorySubspace> =
-        delegate.open(transaction.delegate, path)
-            .thenApply(::DirectorySubspace)
-            .toFdbFuture()
+        directoryDelegate.open(transaction.delegate, path)
+            .mapDirectoryExceptions()
+            .mapToFdbFuture(::DirectorySubspace)
 }
 
-actual fun DirectorySubspace.asDirectory(): Directory = Directory(delegate)
+actual fun DirectorySubspace.asDirectory(): Directory = Directory(directoryDelegate)

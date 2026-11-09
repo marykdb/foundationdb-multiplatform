@@ -68,7 +68,8 @@ fun main() = runBlocking {
 ```
 
 See the [portable API guide](documentation/api-design.md) for coroutine adapters, streaming,
-JVM integration and compatibility.
+JVM integration and compatibility. Before upgrading an existing Native database, read the
+[layout migration guide](documentation/migrations.md).
 
 Additional examples live in `src/commonTest/kotlin/maryk/foundationdb` and mirror all major FoundationDB features
 (range iterators, tuple decoding helpers, management API, etc.).
