@@ -18,7 +18,9 @@ CHECKSUM
 mkdir -p "$output/extracted"
 data_archive="$(ar -t "$output/$package" | tr -d '\r' | sed -n '/^data\.tar/p')"
 test -n "$data_archive"
-ar -p "$output/$package" "$data_archive" | tar -xf - -C "$output/extracted"
+# GNU tar cannot auto-detect compression from stdin; a file works on GNU and BSD tar.
+ar -p "$output/$package" "$data_archive" > "$output/$data_archive"
+tar -xf "$output/$data_archive" -C "$output/extracted"
 mkdir -p "$output/lib"
 find "$output/extracted" -name libfdb_c.so -exec cp -L {} "$output/lib/libfdb_c.so" \;
 test -f "$output/lib/libfdb_c.so"
