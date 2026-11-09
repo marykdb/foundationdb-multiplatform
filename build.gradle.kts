@@ -284,3 +284,5 @@ mavenPublishing {
         }
     }
 }
+
+apply(from = "verification/check-external-consumer.gradle.kts")

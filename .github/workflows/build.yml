@@ -23,7 +23,7 @@ jobs:
               ./gradlew --stacktrace --info '-PfoundationDbNativeTestFilter=maryk.foundationdb.LegacyApiVersionTest.*' macosArm64Test
               ./gradlew --stacktrace --info '-PfoundationDbJvmTestFilter=maryk.foundationdb.LegacyVersionstampApiTest.*' jvmTest
               ./gradlew --stacktrace --info '-PfoundationDbNativeTestFilter=maryk.foundationdb.LegacyVersionstampApiTest.*' macosArm64Test
-              python3 verification/check-external-consumer.py
+              ./gradlew --stacktrace --info checkExternalConsumer
             shell: bash
           - os: macos-26-intel
             display-name: macOS Intel

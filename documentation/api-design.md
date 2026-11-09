@@ -118,8 +118,9 @@ runner verifies copied data, retains the source and leaves application cutover e
 only for reviewed API changes. These baselines do not make earlier breaking changes
 binary compatible.
 
-`python3 verification/check-external-consumer.py` compiles independent Gradle consumers
-against generated artifacts in a temporary filesystem Maven repository. It checks the
+`./gradlew checkExternalConsumer` uses `verification/check-external-consumer.gradle.kts`
+to compile independent Gradle consumers against generated artifacts in an isolated filesystem
+Maven repository under `build/`. It checks the
 root and JVM coordinates, plus JVM POM-only resolution, without project substitution
 or explicitly adding the exposed coroutine/Java dependencies. It publishes nothing remotely.
 
