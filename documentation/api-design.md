@@ -108,6 +108,17 @@ no equivalent JVM detector or reliable inference for arbitrary raw keys. Read th
 [migration details](migrations.md) before opening affected data. The offline migration
 runner verifies copied data, retains the source and leaves application cutover explicit.
 
+## Development checks
+
+`checkKotlinAbi` checks JVM and Native API baselines in `api/`. Use `updateKotlinAbi`
+only for reviewed API changes. These baselines do not make earlier breaking changes
+binary compatible.
+
+`python3 verification/check-external-consumer.py` compiles independent Gradle consumers
+against generated artifacts in a temporary filesystem Maven repository. It checks the
+root and JVM coordinates, plus JVM POM-only resolution, without project substitution
+or explicitly adding the exposed coroutine/Java dependencies. It publishes nothing remotely.
+
 The optional Native counter benchmark runs with
 `-PfoundationDbNativeTestFilter=maryk.foundationdb.MetricsBenchmarkNativeTest.*`.
 Timing results are diagnostic rather than performance assertions.

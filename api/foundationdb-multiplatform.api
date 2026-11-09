@@ -1,0 +1,1802 @@
+public final class maryk/foundationdb/ApiVersion {
+	public static final field INSTANCE Lmaryk/foundationdb/ApiVersion;
+	public final fun getLATEST ()I
+}
+
+public final class maryk/foundationdb/ByteArrayUtil {
+	public static final field INSTANCE Lmaryk/foundationdb/ByteArrayUtil;
+	public final fun comparator ()Ljava/util/Comparator;
+	public final fun compareUnsigned ([B[B)I
+	public final fun decodeInt ([B)J
+	public final fun encodeInt (J)[B
+	public final fun interludeJoin ([B[[B)[B
+	public final fun join ([BLjava/util/List;)[B
+	public final fun join ([[B)[B
+	public static synthetic fun join$default (Lmaryk/foundationdb/ByteArrayUtil;[BLjava/util/List;ILjava/lang/Object;)[B
+	public final fun keyAfter ([B)[B
+	public final fun nullCount ([B)I
+	public final fun printable ([B)Ljava/lang/String;
+	public final fun regionEquals ([BI[B)Z
+	public final fun replace ([BII[B[B)[B
+	public final fun replace ([B[B[B)[B
+	public final fun split ([BII[B)Ljava/util/List;
+	public final fun split ([B[B)Ljava/util/List;
+	public final fun startsWith ([B[B)Z
+	public final fun strinc ([B)[B
+}
+
+public final class maryk/foundationdb/ConflictRangeType : java/lang/Enum {
+	public static final field READ Lmaryk/foundationdb/ConflictRangeType;
+	public static final field WRITE Lmaryk/foundationdb/ConflictRangeType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lmaryk/foundationdb/ConflictRangeType;
+	public static fun values ()[Lmaryk/foundationdb/ConflictRangeType;
+}
+
+public final class maryk/foundationdb/CoroutineInteropKt {
+	public static final fun asDeferred (Lmaryk/foundationdb/FdbFuture;Lkotlinx/coroutines/CoroutineScope;Lmaryk/foundationdb/FutureCancellation;)Lkotlinx/coroutines/Deferred;
+	public static synthetic fun asDeferred$default (Lmaryk/foundationdb/FdbFuture;Lkotlinx/coroutines/CoroutineScope;Lmaryk/foundationdb/FutureCancellation;ILjava/lang/Object;)Lkotlinx/coroutines/Deferred;
+	public static final fun asFdbFuture (Lkotlinx/coroutines/Deferred;Lmaryk/foundationdb/FutureCancellation;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun asFdbFuture$default (Lkotlinx/coroutines/Deferred;Lmaryk/foundationdb/FutureCancellation;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun readSuspend (Lmaryk/foundationdb/ReadTransactionContext;Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun runSuspend (Lmaryk/foundationdb/TransactionContext;Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class maryk/foundationdb/Database : maryk/foundationdb/TransactionContext {
+	public final fun blobbifyRange (Lmaryk/foundationdb/Range;)Lmaryk/foundationdb/FdbFuture;
+	public final fun blobbifyRange ([B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun blobbifyRangeBlocking (Lmaryk/foundationdb/Range;)Lmaryk/foundationdb/FdbFuture;
+	public final fun blobbifyRangeBlocking ([B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun close ()V
+	public final fun createTransaction ()Lmaryk/foundationdb/Transaction;
+	public final fun flushBlobRange (Lmaryk/foundationdb/Range;ZJ)Lmaryk/foundationdb/FdbFuture;
+	public final fun flushBlobRange ([B[BZ)Lmaryk/foundationdb/FdbFuture;
+	public final fun flushBlobRange ([B[BZJ)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun flushBlobRange$default (Lmaryk/foundationdb/Database;Lmaryk/foundationdb/Range;ZJILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public final fun getClientStatus ()Lmaryk/foundationdb/FdbFuture;
+	public final fun getMainThreadBusyness ()D
+	public final fun listBlobbifiedRanges (Lmaryk/foundationdb/Range;I)Lmaryk/foundationdb/FdbFuture;
+	public final fun listBlobbifiedRanges ([B[BI)Lmaryk/foundationdb/FdbFuture;
+	public final fun openTenant (Lmaryk/foundationdb/tuple/Tuple;)Lmaryk/foundationdb/Tenant;
+	public final fun openTenant ([B)Lmaryk/foundationdb/Tenant;
+	public final fun options ()Lmaryk/foundationdb/DatabaseOptions;
+	public final fun purgeBlobGranules (Lmaryk/foundationdb/Range;JZ)Lmaryk/foundationdb/FdbFuture;
+	public final fun purgeBlobGranules ([B[BJZ)Lmaryk/foundationdb/FdbFuture;
+	public final fun purgeBlobGranules ([B[BZ)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun purgeBlobGranules$default (Lmaryk/foundationdb/Database;Lmaryk/foundationdb/Range;JZILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public fun read (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public fun readAsync (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public fun run (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public fun runAsync (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public final fun unblobbifyRange (Lmaryk/foundationdb/Range;)Lmaryk/foundationdb/FdbFuture;
+	public final fun unblobbifyRange ([B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun verifyBlobRange (Lmaryk/foundationdb/Range;J)Lmaryk/foundationdb/FdbFuture;
+	public final fun verifyBlobRange ([B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun verifyBlobRange ([B[BJ)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun verifyBlobRange$default (Lmaryk/foundationdb/Database;Lmaryk/foundationdb/Range;JILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public final fun waitPurgeGranulesComplete ([B)Lmaryk/foundationdb/FdbFuture;
+}
+
+public abstract interface class maryk/foundationdb/DatabaseOptionSink {
+	public abstract fun setDatacenterId (Ljava/lang/String;)V
+	public abstract fun setLocationCacheSize (J)V
+	public abstract fun setMachineId (Ljava/lang/String;)V
+	public abstract fun setMaxWatches (J)V
+	public abstract fun setSnapshotRywDisable ()V
+	public abstract fun setSnapshotRywEnable ()V
+	public abstract fun setTestCausalReadRisky (J)V
+	public abstract fun setTransactionAutomaticIdempotency ()V
+	public abstract fun setTransactionBypassUnreadable ()V
+	public abstract fun setTransactionCausalReadRisky ()V
+	public fun setTransactionIncludePortInAddress ()V
+	public abstract fun setTransactionLoggingMaxFieldLength (J)V
+	public abstract fun setTransactionMaxRetryDelay (J)V
+	public abstract fun setTransactionReportConflictingKeys ()V
+	public abstract fun setTransactionRetryLimit (J)V
+	public abstract fun setTransactionSizeLimit (J)V
+	public abstract fun setTransactionTimeout (J)V
+	public abstract fun setTransactionUsedDuringCommitProtectionDisable ()V
+	public abstract fun setUseConfigDatabase ()V
+}
+
+public final class maryk/foundationdb/DatabaseOptionSink$DefaultImpls {
+	public static fun setTransactionIncludePortInAddress (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/DatabaseOptions : maryk/foundationdb/DatabaseOptionSink {
+	public fun <init> (Lmaryk/foundationdb/OptionConsumer;)V
+	public final fun getOptionConsumer ()Lmaryk/foundationdb/OptionConsumer;
+	public fun setDatacenterId (Ljava/lang/String;)V
+	public fun setLocationCacheSize (J)V
+	public fun setMachineId (Ljava/lang/String;)V
+	public fun setMaxWatches (J)V
+	public fun setSnapshotRywDisable ()V
+	public fun setSnapshotRywEnable ()V
+	public fun setTestCausalReadRisky (J)V
+	public fun setTransactionAutomaticIdempotency ()V
+	public fun setTransactionBypassUnreadable ()V
+	public fun setTransactionCausalReadRisky ()V
+	public fun setTransactionIncludePortInAddress ()V
+	public fun setTransactionLoggingMaxFieldLength (J)V
+	public fun setTransactionMaxRetryDelay (J)V
+	public fun setTransactionReportConflictingKeys ()V
+	public fun setTransactionRetryLimit (J)V
+	public fun setTransactionSizeLimit (J)V
+	public fun setTransactionTimeout (J)V
+	public fun setTransactionUsedDuringCommitProtectionDisable ()V
+	public fun setUseConfigDatabase ()V
+}
+
+public abstract interface class maryk/foundationdb/Event {
+	public abstract fun getName ()Ljava/lang/String;
+	public fun isTimeEvent ()Z
+}
+
+public final class maryk/foundationdb/Event$DefaultImpls {
+	public static fun isTimeEvent (Lmaryk/foundationdb/Event;)Z
+}
+
+public abstract interface class maryk/foundationdb/EventKeeper {
+	public abstract fun count (Lmaryk/foundationdb/Event;J)V
+	public static synthetic fun count$default (Lmaryk/foundationdb/EventKeeper;Lmaryk/foundationdb/Event;JILjava/lang/Object;)V
+	public abstract fun getCount (Lmaryk/foundationdb/Event;)J
+	public fun getTime (Lmaryk/foundationdb/Event;Lkotlin/time/DurationUnit;)J
+	public abstract fun getTimeNanos (Lmaryk/foundationdb/Event;)J
+	public fun increment (Lmaryk/foundationdb/Event;)V
+	public fun time (Lmaryk/foundationdb/Event;JLkotlin/time/DurationUnit;)V
+	public abstract fun timeNanos (Lmaryk/foundationdb/Event;J)V
+}
+
+public final class maryk/foundationdb/EventKeeper$DefaultImpls {
+	public static synthetic fun count$default (Lmaryk/foundationdb/EventKeeper;Lmaryk/foundationdb/Event;JILjava/lang/Object;)V
+	public static fun getTime (Lmaryk/foundationdb/EventKeeper;Lmaryk/foundationdb/Event;Lkotlin/time/DurationUnit;)J
+	public static fun increment (Lmaryk/foundationdb/EventKeeper;Lmaryk/foundationdb/Event;)V
+	public static fun time (Lmaryk/foundationdb/EventKeeper;Lmaryk/foundationdb/Event;JLkotlin/time/DurationUnit;)V
+}
+
+public abstract interface annotation class maryk/foundationdb/ExperimentalBlobGranules : java/lang/annotation/Annotation {
+}
+
+public final class maryk/foundationdb/FDB {
+	public static final field Companion Lmaryk/foundationdb/FDB$Companion;
+	public final fun getAPIVersion ()I
+	public final fun open ()Lmaryk/foundationdb/Database;
+	public final fun open (Ljava/lang/String;)Lmaryk/foundationdb/Database;
+	public final fun options ()Lmaryk/foundationdb/NetworkOptions;
+	public final fun setUnclosedWarning (Z)V
+	public final fun shutdown ()V
+	public final fun startNetwork ()V
+	public final fun stopNetwork ()V
+}
+
+public final class maryk/foundationdb/FDB$Companion {
+	public final fun instance ()Lmaryk/foundationdb/FDB;
+	public final fun isAPIVersionSelected ()Z
+	public final fun selectAPIVersion (I)Lmaryk/foundationdb/FDB;
+}
+
+public final class maryk/foundationdb/FastByteComparisons {
+	public static final field INSTANCE Lmaryk/foundationdb/FastByteComparisons;
+	public final fun comparator ()Ljava/util/Comparator;
+	public final fun compareTo ([BII[BII)I
+}
+
+public final class maryk/foundationdb/FdbEvent : java/lang/Enum, maryk/foundationdb/Event {
+	public static final field BYTES_FETCHED Lmaryk/foundationdb/FdbEvent;
+	public static final field JNI_CALL Lmaryk/foundationdb/FdbEvent;
+	public static final field RANGE_QUERY_CHUNK_FAILED Lmaryk/foundationdb/FdbEvent;
+	public static final field RANGE_QUERY_DIRECT_BUFFER_HIT Lmaryk/foundationdb/FdbEvent;
+	public static final field RANGE_QUERY_DIRECT_BUFFER_MISS Lmaryk/foundationdb/FdbEvent;
+	public static final field RANGE_QUERY_FETCHES Lmaryk/foundationdb/FdbEvent;
+	public static final field RANGE_QUERY_FETCH_TIME_NANOS Lmaryk/foundationdb/FdbEvent;
+	public static final field RANGE_QUERY_RECORDS_FETCHED Lmaryk/foundationdb/FdbEvent;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public synthetic fun getName ()Ljava/lang/String;
+	public fun isTimeEvent ()Z
+	public static fun valueOf (Ljava/lang/String;)Lmaryk/foundationdb/FdbEvent;
+	public static fun values ()[Lmaryk/foundationdb/FdbEvent;
+}
+
+public abstract interface class maryk/foundationdb/FdbFuture {
+	public abstract fun await (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun awaitObserved (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun cancel ()V
+	public abstract fun isCancelled ()Z
+	public abstract fun isDone ()Z
+}
+
+public final class maryk/foundationdb/FdbFutureKt {
+	public static final fun completedFdbFuture (Ljava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun failedFdbFuture (Ljava/lang/Throwable;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun fdbFuture (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/FutureCancellation : java/lang/Enum {
+	public static final field OBSERVE Lmaryk/foundationdb/FutureCancellation;
+	public static final field PROPAGATE Lmaryk/foundationdb/FutureCancellation;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lmaryk/foundationdb/FutureCancellation;
+	public static fun values ()[Lmaryk/foundationdb/FutureCancellation;
+}
+
+public final class maryk/foundationdb/FutureExtensionsKt {
+	public static final fun asFdbFuture (Ljava/util/concurrent/CompletableFuture;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/IterableComparator : java/util/Comparator {
+	public fun <init> ()V
+	public fun compare (Ljava/lang/Iterable;Ljava/lang/Iterable;)I
+	public synthetic fun compare (Ljava/lang/Object;Ljava/lang/Object;)I
+}
+
+public final class maryk/foundationdb/KeySelector {
+	public static final field Companion Lmaryk/foundationdb/KeySelector$Companion;
+	public fun <init> ([BZI)V
+	public final fun add (I)Lmaryk/foundationdb/KeySelector;
+	public final fun getKey ()[B
+	public final fun getOffset ()I
+	public final fun getOrEqual ()Z
+}
+
+public final class maryk/foundationdb/KeySelector$Companion {
+	public final fun firstGreaterOrEqual ([B)Lmaryk/foundationdb/KeySelector;
+	public final fun firstGreaterThan ([B)Lmaryk/foundationdb/KeySelector;
+	public final fun lastLessOrEqual ([B)Lmaryk/foundationdb/KeySelector;
+	public final fun lastLessThan ([B)Lmaryk/foundationdb/KeySelector;
+}
+
+public class maryk/foundationdb/KeyValue {
+	public fun <init> ([B[B)V
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getKey ()[B
+	public fun getValue ()[B
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/LocalityUtil {
+	public static final field INSTANCE Lmaryk/foundationdb/LocalityUtil;
+	public final fun getAddressesForKey (Lmaryk/foundationdb/Transaction;[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun getBoundaryKeys (Lmaryk/foundationdb/Database;[B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun getBoundaryKeys (Lmaryk/foundationdb/Transaction;[B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun openBoundaryKeysIterator (Lmaryk/foundationdb/Database;[B[B)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+	public final fun openBoundaryKeysIterator (Lmaryk/foundationdb/Transaction;[B[B)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+}
+
+public final class maryk/foundationdb/MapEventKeeper : maryk/foundationdb/EventKeeper {
+	public fun <init> ()V
+	public fun count (Lmaryk/foundationdb/Event;J)V
+	public fun getCount (Lmaryk/foundationdb/Event;)J
+	public fun getTime (Lmaryk/foundationdb/Event;Lkotlin/time/DurationUnit;)J
+	public fun getTimeNanos (Lmaryk/foundationdb/Event;)J
+	public fun increment (Lmaryk/foundationdb/Event;)V
+	public fun time (Lmaryk/foundationdb/Event;JLkotlin/time/DurationUnit;)V
+	public fun timeNanos (Lmaryk/foundationdb/Event;J)V
+}
+
+public final class maryk/foundationdb/MappedKeyValue : maryk/foundationdb/KeyValue {
+	public fun <init> ([B[B[B[BLjava/util/List;)V
+	public final fun component1 ()[B
+	public final fun component2 ()[B
+	public final fun component3 ()[B
+	public final fun component4 ()[B
+	public final fun component5 ()Ljava/util/List;
+	public final fun copy ([B[B[B[BLjava/util/List;)Lmaryk/foundationdb/MappedKeyValue;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/MappedKeyValue;[B[B[B[BLjava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/MappedKeyValue;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getKey ()[B
+	public final fun getRangeBegin ()[B
+	public final fun getRangeEnd ()[B
+	public final fun getRangeResult ()Ljava/util/List;
+	public fun getValue ()[B
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/MappedRangeResult {
+	public fun <init> (Ljava/util/List;Lmaryk/foundationdb/RangeResultSummary;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Lmaryk/foundationdb/RangeResultSummary;
+	public final fun copy (Ljava/util/List;Lmaryk/foundationdb/RangeResultSummary;)Lmaryk/foundationdb/MappedRangeResult;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/MappedRangeResult;Ljava/util/List;Lmaryk/foundationdb/RangeResultSummary;ILjava/lang/Object;)Lmaryk/foundationdb/MappedRangeResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHasMore ()Z
+	public final fun getSummary ()Lmaryk/foundationdb/RangeResultSummary;
+	public final fun getValues ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/MappedRangeResultKt {
+	public static final fun collectMappedRange (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun collectMappedRange (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/Range;[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun collectMappedRange (Lmaryk/foundationdb/ReadTransaction;[B[B[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun collectMappedRange$default (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;[BIZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun collectMappedRange$default (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/Range;[BIZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun collectMappedRange$default (Lmaryk/foundationdb/ReadTransaction;[B[B[BIZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/MutationType : java/lang/Enum {
+	public static final field ADD Lmaryk/foundationdb/MutationType;
+	public static final field AND Lmaryk/foundationdb/MutationType;
+	public static final field APPEND_IF_FITS Lmaryk/foundationdb/MutationType;
+	public static final field BIT_AND Lmaryk/foundationdb/MutationType;
+	public static final field BIT_OR Lmaryk/foundationdb/MutationType;
+	public static final field BIT_XOR Lmaryk/foundationdb/MutationType;
+	public static final field BYTE_MAX Lmaryk/foundationdb/MutationType;
+	public static final field BYTE_MIN Lmaryk/foundationdb/MutationType;
+	public static final field COMPARE_AND_CLEAR Lmaryk/foundationdb/MutationType;
+	public static final field MAX Lmaryk/foundationdb/MutationType;
+	public static final field MIN Lmaryk/foundationdb/MutationType;
+	public static final field OR Lmaryk/foundationdb/MutationType;
+	public static final field SET_VERSIONSTAMPED_KEY Lmaryk/foundationdb/MutationType;
+	public static final field SET_VERSIONSTAMPED_VALUE Lmaryk/foundationdb/MutationType;
+	public static final field XOR Lmaryk/foundationdb/MutationType;
+	public final fun code ()I
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lmaryk/foundationdb/MutationType;
+	public static fun values ()[Lmaryk/foundationdb/MutationType;
+}
+
+public final class maryk/foundationdb/NetworkOptions {
+	public fun <init> (Lmaryk/foundationdb/OptionConsumer;)V
+	public final fun getOptionConsumer ()Lmaryk/foundationdb/OptionConsumer;
+	public final fun setBuggifyDisable ()V
+	public final fun setBuggifyEnable ()V
+	public final fun setBuggifySectionActivatedProbability (J)V
+	public final fun setBuggifySectionFiredProbability (J)V
+	public final fun setCallbacksOnExternalThreads ()V
+	public final fun setClientBuggifyDisable ()V
+	public final fun setClientBuggifyEnable ()V
+	public final fun setClientBuggifySectionActivatedProbability (J)V
+	public final fun setClientBuggifySectionFiredProbability (J)V
+	public final fun setClientThreadsPerVersion (J)V
+	public final fun setClientTmpDir (Ljava/lang/String;)V
+	public final fun setClusterFile (Ljava/lang/String;)V
+	public final fun setDisableClientBypass ()V
+	public final fun setDisableClientStatisticsLogging ()V
+	public final fun setDisableLocalClient ()V
+	public final fun setDisableMultiVersionClientApi ()V
+	public final fun setDistributedClientTracer (Ljava/lang/String;)V
+	public final fun setEnableRunLoopProfiling ()V
+	public final fun setEnableSlowTaskProfiling ()V
+	public final fun setExternalClientDirectory (Ljava/lang/String;)V
+	public final fun setExternalClientLibrary (Ljava/lang/String;)V
+	public final fun setFailIncompatibleClient ()V
+	public final fun setFutureVersionClientLibrary (Ljava/lang/String;)V
+	public final fun setIgnoreExternalClientFailures ()V
+	public final fun setKnob (Ljava/lang/String;)V
+	public final fun setLocalAddress (Ljava/lang/String;)V
+	public final fun setRetainClientLibraryCopies ()V
+	public final fun setTLSCaBytes ([B)V
+	public final fun setTLSCaPath (Ljava/lang/String;)V
+	public final fun setTLSCertBytes ([B)V
+	public final fun setTLSCertPath (Ljava/lang/String;)V
+	public final fun setTLSKeyBytes ([B)V
+	public final fun setTLSKeyPath (Ljava/lang/String;)V
+	public final fun setTLSPassword (Ljava/lang/String;)V
+	public final fun setTLSPlugin (Ljava/lang/String;)V
+	public final fun setTLSVerifyPeers ([B)V
+	public final fun setTraceClockSource (Ljava/lang/String;)V
+	public final fun setTraceEnable (Ljava/lang/String;)V
+	public final fun setTraceFileIdentifier (Ljava/lang/String;)V
+	public final fun setTraceFormat (Ljava/lang/String;)V
+	public final fun setTraceInitializeOnSetup ()V
+	public final fun setTraceLogGroup (Ljava/lang/String;)V
+	public final fun setTraceMaxLogsSize (J)V
+	public final fun setTracePartialFileSuffix (Ljava/lang/String;)V
+	public final fun setTraceRollSize (J)V
+	public final fun setTraceShareAmongClientThreads ()V
+}
+
+public abstract interface class maryk/foundationdb/OptionConsumer {
+	public abstract fun setOption (I[B)V
+}
+
+public final class maryk/foundationdb/Range {
+	public static final field Companion Lmaryk/foundationdb/Range$Companion;
+	public fun <init> ([B[B)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBegin ()[B
+	public final fun getEnd ()[B
+	public fun hashCode ()I
+}
+
+public final class maryk/foundationdb/Range$Companion {
+	public final fun startsWith ([B)Lmaryk/foundationdb/Range;
+}
+
+public final class maryk/foundationdb/RangeQuery {
+	public final fun asList ()Lmaryk/foundationdb/FdbFuture;
+	public final fun iterator ()Lmaryk/foundationdb/async/AsyncIterator;
+}
+
+public final class maryk/foundationdb/RangeQueryKt {
+	public static final fun rangeQuery (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;IZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/RangeQuery;
+	public static final fun rangeQuery (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/Range;IZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/RangeQuery;
+	public static final fun rangeQuery (Lmaryk/foundationdb/ReadTransaction;[B[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/RangeQuery;
+	public static final fun rangeQuery (Lmaryk/foundationdb/Transaction;Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;IZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/RangeQuery;
+	public static final fun rangeQuery (Lmaryk/foundationdb/Transaction;Lmaryk/foundationdb/Range;IZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/RangeQuery;
+	public static final fun rangeQuery (Lmaryk/foundationdb/Transaction;[B[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/RangeQuery;
+	public static synthetic fun rangeQuery$default (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;IZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/RangeQuery;
+	public static synthetic fun rangeQuery$default (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/Range;IZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/RangeQuery;
+	public static synthetic fun rangeQuery$default (Lmaryk/foundationdb/ReadTransaction;[B[BIZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/RangeQuery;
+	public static synthetic fun rangeQuery$default (Lmaryk/foundationdb/Transaction;Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;IZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/RangeQuery;
+	public static synthetic fun rangeQuery$default (Lmaryk/foundationdb/Transaction;Lmaryk/foundationdb/Range;IZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/RangeQuery;
+	public static synthetic fun rangeQuery$default (Lmaryk/foundationdb/Transaction;[B[BIZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/RangeQuery;
+}
+
+public final class maryk/foundationdb/RangeResult {
+	public fun <init> (Ljava/util/List;Lmaryk/foundationdb/RangeResultSummary;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Lmaryk/foundationdb/RangeResultSummary;
+	public final fun copy (Ljava/util/List;Lmaryk/foundationdb/RangeResultSummary;)Lmaryk/foundationdb/RangeResult;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/RangeResult;Ljava/util/List;Lmaryk/foundationdb/RangeResultSummary;ILjava/lang/Object;)Lmaryk/foundationdb/RangeResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHasMore ()Z
+	public final fun getSummary ()Lmaryk/foundationdb/RangeResultSummary;
+	public final fun getValues ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/RangeResultKt {
+	public static final fun collectRange (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;IZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun collectRange (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/Range;IZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun collectRange (Lmaryk/foundationdb/ReadTransaction;[B[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun collectRange$default (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;IZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun collectRange$default (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/Range;IZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun collectRange$default (Lmaryk/foundationdb/ReadTransaction;[B[BIZLmaryk/foundationdb/StreamingMode;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/RangeResultSummary {
+	public fun <init> ([BIZ)V
+	public final fun component1 ()[B
+	public final fun component2 ()I
+	public final fun component3 ()Z
+	public final fun copy ([BIZ)Lmaryk/foundationdb/RangeResultSummary;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/RangeResultSummary;[BIZILjava/lang/Object;)Lmaryk/foundationdb/RangeResultSummary;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHasMore ()Z
+	public final fun getKeyCount ()I
+	public final fun getLastKey ()[B
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public class maryk/foundationdb/ReadTransaction : maryk/foundationdb/ReadTransactionContext {
+	public static final field Companion Lmaryk/foundationdb/ReadTransaction$Companion;
+	public final fun addReadConflictKeyIfNotSnapshot ([B)Z
+	public final fun addReadConflictRangeIfNotSnapshot ([B[B)Z
+	public final fun get ([B)Lmaryk/foundationdb/FdbFuture;
+	public final fun getBlobGranuleRanges (Lmaryk/foundationdb/Range;I)Lmaryk/foundationdb/FdbFuture;
+	public final fun getBlobGranuleRanges ([B[BI)Lmaryk/foundationdb/FdbFuture;
+	public fun getEstimatedRangeSizeBytes (Lmaryk/foundationdb/Range;)Lmaryk/foundationdb/FdbFuture;
+	public final fun getEstimatedRangeSizeBytes ([B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun getKey (Lmaryk/foundationdb/KeySelector;)Lmaryk/foundationdb/FdbFuture;
+	public final fun getMappedRange (Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;[B)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange (Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;[BI)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange (Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;[BIZ)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange (Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange (Lmaryk/foundationdb/Range;[B)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange (Lmaryk/foundationdb/Range;[BI)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange (Lmaryk/foundationdb/Range;[BIZ)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange (Lmaryk/foundationdb/Range;[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange ([B[B[B)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange ([B[B[BI)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange ([B[B[BIZ)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getMappedRange ([B[B[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange (Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange (Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;I)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange (Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;IZ)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange (Lmaryk/foundationdb/KeySelector;Lmaryk/foundationdb/KeySelector;IZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange (Lmaryk/foundationdb/Range;)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange (Lmaryk/foundationdb/Range;I)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange (Lmaryk/foundationdb/Range;IZ)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange (Lmaryk/foundationdb/Range;IZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange ([B[B)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange ([B[BI)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange ([B[BIZ)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun getRange ([B[BIZLmaryk/foundationdb/StreamingMode;)Lmaryk/foundationdb/async/AsyncIterable;
+	public fun getRangeSplitPoints (Lmaryk/foundationdb/Range;J)Lmaryk/foundationdb/FdbFuture;
+	public final fun getRangeSplitPoints ([B[BJ)Lmaryk/foundationdb/FdbFuture;
+	public final fun getReadVersion ()Lmaryk/foundationdb/FdbFuture;
+	public final fun isSnapshot ()Z
+	public fun options ()Lmaryk/foundationdb/TransactionOptions;
+	public fun read (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public fun readAsync (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public final fun setReadVersion (J)V
+	public final fun snapshot ()Lmaryk/foundationdb/ReadTransaction;
+}
+
+public final class maryk/foundationdb/ReadTransaction$Companion {
+	public final fun getROW_LIMIT_UNLIMITED ()I
+}
+
+public abstract interface class maryk/foundationdb/ReadTransactionContext {
+	public abstract fun read (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public abstract fun readAsync (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/ReadTransactionContextKt {
+	public static final fun readSuspend (Lmaryk/foundationdb/ReadTransactionContext;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class maryk/foundationdb/StreamingMode : java/lang/Enum {
+	public static final field EXACT Lmaryk/foundationdb/StreamingMode;
+	public static final field ITERATOR Lmaryk/foundationdb/StreamingMode;
+	public static final field LARGE Lmaryk/foundationdb/StreamingMode;
+	public static final field MEDIUM Lmaryk/foundationdb/StreamingMode;
+	public static final field SERIAL Lmaryk/foundationdb/StreamingMode;
+	public static final field SMALL Lmaryk/foundationdb/StreamingMode;
+	public static final field WANT_ALL Lmaryk/foundationdb/StreamingMode;
+	public final fun code ()I
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lmaryk/foundationdb/StreamingMode;
+	public static fun values ()[Lmaryk/foundationdb/StreamingMode;
+}
+
+public final class maryk/foundationdb/StringUtil {
+	public static final field INSTANCE Lmaryk/foundationdb/StringUtil;
+	public final fun compareUtf8 (Ljava/lang/String;Ljava/lang/String;)I
+	public final fun packedSize (Ljava/lang/String;)I
+	public final fun validate (Ljava/lang/String;)V
+}
+
+public final class maryk/foundationdb/Tenant : maryk/foundationdb/TransactionContext {
+	public final fun blobbifyRange (Lmaryk/foundationdb/Range;)Lmaryk/foundationdb/FdbFuture;
+	public final fun blobbifyRange ([B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun blobbifyRangeBlocking (Lmaryk/foundationdb/Range;)Lmaryk/foundationdb/FdbFuture;
+	public final fun blobbifyRangeBlocking ([B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun close ()V
+	public final fun createTransaction ()Lmaryk/foundationdb/Transaction;
+	public final fun flushBlobRange (Lmaryk/foundationdb/Range;ZJ)Lmaryk/foundationdb/FdbFuture;
+	public final fun flushBlobRange ([B[BZ)Lmaryk/foundationdb/FdbFuture;
+	public final fun flushBlobRange ([B[BZJ)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun flushBlobRange$default (Lmaryk/foundationdb/Tenant;Lmaryk/foundationdb/Range;ZJILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public final fun getId ()Lmaryk/foundationdb/FdbFuture;
+	public final fun getName ()[B
+	public final fun listBlobbifiedRanges (Lmaryk/foundationdb/Range;I)Lmaryk/foundationdb/FdbFuture;
+	public final fun listBlobbifiedRanges ([B[BI)Lmaryk/foundationdb/FdbFuture;
+	public final fun purgeBlobGranules (Lmaryk/foundationdb/Range;JZ)Lmaryk/foundationdb/FdbFuture;
+	public final fun purgeBlobGranules ([B[BJZ)Lmaryk/foundationdb/FdbFuture;
+	public final fun purgeBlobGranules ([B[BZ)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun purgeBlobGranules$default (Lmaryk/foundationdb/Tenant;Lmaryk/foundationdb/Range;JZILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public fun read (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public fun readAsync (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public fun run (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public fun runAsync (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public final fun unblobbifyRange (Lmaryk/foundationdb/Range;)Lmaryk/foundationdb/FdbFuture;
+	public final fun unblobbifyRange ([B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun verifyBlobRange (Lmaryk/foundationdb/Range;J)Lmaryk/foundationdb/FdbFuture;
+	public final fun verifyBlobRange ([B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun verifyBlobRange ([B[BJ)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun verifyBlobRange$default (Lmaryk/foundationdb/Tenant;Lmaryk/foundationdb/Range;JILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public final fun waitPurgeGranulesComplete ([B)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/TenantIterationKt {
+	public static final fun listTenantsFlow (Lmaryk/foundationdb/TenantManagement;Lmaryk/foundationdb/Database;Lmaryk/foundationdb/tuple/Tuple;Lmaryk/foundationdb/tuple/Tuple;I)Lkotlinx/coroutines/flow/Flow;
+	public static final fun listTenantsFlow (Lmaryk/foundationdb/TenantManagement;Lmaryk/foundationdb/Database;[B[BI)Lkotlinx/coroutines/flow/Flow;
+	public static synthetic fun listTenantsFlow$default (Lmaryk/foundationdb/TenantManagement;Lmaryk/foundationdb/Database;Lmaryk/foundationdb/tuple/Tuple;Lmaryk/foundationdb/tuple/Tuple;IILjava/lang/Object;)Lkotlinx/coroutines/flow/Flow;
+	public static synthetic fun listTenantsFlow$default (Lmaryk/foundationdb/TenantManagement;Lmaryk/foundationdb/Database;[B[BIILjava/lang/Object;)Lkotlinx/coroutines/flow/Flow;
+}
+
+public final class maryk/foundationdb/TenantManagement {
+	public static final field INSTANCE Lmaryk/foundationdb/TenantManagement;
+	public final fun createTenant (Lmaryk/foundationdb/Database;Lmaryk/foundationdb/tuple/Tuple;)Lmaryk/foundationdb/FdbFuture;
+	public final fun createTenant (Lmaryk/foundationdb/Database;[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun createTenant (Lmaryk/foundationdb/Transaction;Lmaryk/foundationdb/tuple/Tuple;)V
+	public final fun createTenant (Lmaryk/foundationdb/Transaction;[B)V
+	public final fun deleteTenant (Lmaryk/foundationdb/Database;Lmaryk/foundationdb/tuple/Tuple;)Lmaryk/foundationdb/FdbFuture;
+	public final fun deleteTenant (Lmaryk/foundationdb/Database;[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun deleteTenant (Lmaryk/foundationdb/Transaction;Lmaryk/foundationdb/tuple/Tuple;)V
+	public final fun deleteTenant (Lmaryk/foundationdb/Transaction;[B)V
+	public final fun listTenants (Lmaryk/foundationdb/Database;Lmaryk/foundationdb/tuple/Tuple;Lmaryk/foundationdb/tuple/Tuple;I)Lmaryk/foundationdb/FdbFuture;
+	public final fun listTenants (Lmaryk/foundationdb/Database;[B[BI)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun listTenants$default (Lmaryk/foundationdb/TenantManagement;Lmaryk/foundationdb/Database;Lmaryk/foundationdb/tuple/Tuple;Lmaryk/foundationdb/tuple/Tuple;IILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun listTenants$default (Lmaryk/foundationdb/TenantManagement;Lmaryk/foundationdb/Database;[B[BIILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public final fun openTenantsIterator (Lmaryk/foundationdb/Database;Lmaryk/foundationdb/tuple/Tuple;Lmaryk/foundationdb/tuple/Tuple;I)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+	public final fun openTenantsIterator (Lmaryk/foundationdb/Database;[B[BI)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+	public static synthetic fun openTenantsIterator$default (Lmaryk/foundationdb/TenantManagement;Lmaryk/foundationdb/Database;Lmaryk/foundationdb/tuple/Tuple;Lmaryk/foundationdb/tuple/Tuple;IILjava/lang/Object;)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+	public static synthetic fun openTenantsIterator$default (Lmaryk/foundationdb/TenantManagement;Lmaryk/foundationdb/Database;[B[BIILjava/lang/Object;)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+}
+
+public final class maryk/foundationdb/Transaction : maryk/foundationdb/ReadTransaction, maryk/foundationdb/TransactionContext {
+	public final fun addReadConflictKey ([B)V
+	public final fun addReadConflictRange ([B[B)V
+	public final fun addWriteConflictKey ([B)V
+	public final fun addWriteConflictRange ([B[B)V
+	public final fun atomicAdd ([B[B)V
+	public final fun cancel ()V
+	public final fun clear (Lmaryk/foundationdb/Range;)V
+	public final fun clear ([B)V
+	public final fun clear ([B[B)V
+	public final fun clearRangeStartsWith ([B)V
+	public final fun close ()V
+	public final fun commit ()Lmaryk/foundationdb/FdbFuture;
+	public final fun getApproximateSize ()Lmaryk/foundationdb/FdbFuture;
+	public final fun getCommittedVersion ()J
+	public final fun getDatabase ()Lmaryk/foundationdb/Database;
+	public synthetic fun getDelegate$io_maryk_foundationdb_foundationdb_multiplatform ()Lcom/apple/foundationdb/ReadTransaction;
+	public fun getEstimatedRangeSizeBytes (Lmaryk/foundationdb/Range;)Lmaryk/foundationdb/FdbFuture;
+	public fun getRangeSplitPoints (Lmaryk/foundationdb/Range;J)Lmaryk/foundationdb/FdbFuture;
+	public final fun getVersionstamp ()Lmaryk/foundationdb/FdbFuture;
+	public final fun mutate (Lmaryk/foundationdb/MutationType;[B[B)V
+	public final fun onError (Lcom/apple/foundationdb/FDBException;)Lmaryk/foundationdb/FdbFuture;
+	public final fun onError (Ljava/lang/Throwable;)Lmaryk/foundationdb/FdbFuture;
+	public fun options ()Lmaryk/foundationdb/TransactionOptions;
+	public fun read (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public fun readAsync (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public fun run (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public fun runAsync (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public final fun set ([B[B)V
+	public final fun watch ([B)Lmaryk/foundationdb/FdbFuture;
+}
+
+public abstract interface class maryk/foundationdb/TransactionContext : maryk/foundationdb/ReadTransactionContext {
+	public abstract fun run (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public abstract fun runAsync (Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/TransactionContextKt {
+	public static final fun readSuspend (Lmaryk/foundationdb/TransactionContext;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun runSuspend (Lmaryk/foundationdb/TransactionContext;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class maryk/foundationdb/TransactionOptionSink {
+	public abstract fun setAccessSystemKeys ()V
+	public abstract fun setAuthorizationToken (Ljava/lang/String;)V
+	public abstract fun setAutoThrottleTag (Ljava/lang/String;)V
+	public abstract fun setAutomaticIdempotency ()V
+	public abstract fun setBypassStorageQuota ()V
+	public abstract fun setBypassUnreadable ()V
+	public abstract fun setCausalReadDisable ()V
+	public abstract fun setCausalReadRisky ()V
+	public abstract fun setCausalWriteRisky ()V
+	public abstract fun setDebugRetryLogging (Ljava/lang/String;)V
+	public abstract fun setDebugTransactionIdentifier (Ljava/lang/String;)V
+	public abstract fun setDurabilityDatacenter ()V
+	public fun setDurabilityDevNullIsWebScale ()V
+	public abstract fun setDurabilityRisky ()V
+	public abstract fun setExpensiveClearCostEstimationEnable ()V
+	public abstract fun setIncludePortInAddress ()V
+	public abstract fun setInitializeNewDatabase ()V
+	public abstract fun setLockAware ()V
+	public abstract fun setLogTransaction ()V
+	public abstract fun setMaxRetryDelay (J)V
+	public abstract fun setNextWriteNoWriteConflictRange ()V
+	public abstract fun setPriorityBatch ()V
+	public abstract fun setPrioritySystemImmediate ()V
+	public abstract fun setRawAccess ()V
+	public fun setReadAheadDisable ()V
+	public abstract fun setReadLockAware ()V
+	public abstract fun setReadPriorityHigh ()V
+	public abstract fun setReadPriorityLow ()V
+	public abstract fun setReadPriorityNormal ()V
+	public abstract fun setReadServerSideCacheDisable ()V
+	public abstract fun setReadServerSideCacheEnable ()V
+	public abstract fun setReadSystemKeys ()V
+	public abstract fun setReadYourWritesDisable ()V
+	public abstract fun setReportConflictingKeys ()V
+	public abstract fun setRetryLimit (J)V
+	public abstract fun setServerRequestTracing ()V
+	public abstract fun setSizeLimit (J)V
+	public abstract fun setSnapshotRywDisable ()V
+	public abstract fun setSnapshotRywEnable ()V
+	public abstract fun setSpanParent ([B)V
+	public abstract fun setSpecialKeySpaceEnableWrites ()V
+	public abstract fun setSpecialKeySpaceRelaxed ()V
+	public abstract fun setTag (Ljava/lang/String;)V
+	public abstract fun setTimeout (J)V
+	public fun setTransactionLoggingEnable (Ljava/lang/String;)V
+	public abstract fun setTransactionLoggingMaxFieldLength (J)V
+	public abstract fun setUseGrvCache ()V
+	public abstract fun setUseProvisionalProxies ()V
+	public abstract fun setUsedDuringCommitProtectionDisable ()V
+}
+
+public final class maryk/foundationdb/TransactionOptionSink$DefaultImpls {
+	public static fun setDurabilityDevNullIsWebScale (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public static fun setReadAheadDisable (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public static fun setTransactionLoggingEnable (Lmaryk/foundationdb/TransactionOptionSink;Ljava/lang/String;)V
+}
+
+public final class maryk/foundationdb/TransactionOptions : maryk/foundationdb/TransactionOptionSink {
+	public fun <init> (Lmaryk/foundationdb/OptionConsumer;)V
+	public final fun getOptionConsumer ()Lmaryk/foundationdb/OptionConsumer;
+	public fun setAccessSystemKeys ()V
+	public fun setAuthorizationToken (Ljava/lang/String;)V
+	public fun setAutoThrottleTag (Ljava/lang/String;)V
+	public fun setAutomaticIdempotency ()V
+	public fun setBypassStorageQuota ()V
+	public fun setBypassUnreadable ()V
+	public fun setCausalReadDisable ()V
+	public fun setCausalReadRisky ()V
+	public fun setCausalWriteRisky ()V
+	public fun setDebugRetryLogging (Ljava/lang/String;)V
+	public fun setDebugTransactionIdentifier (Ljava/lang/String;)V
+	public fun setDurabilityDatacenter ()V
+	public fun setDurabilityDevNullIsWebScale ()V
+	public fun setDurabilityRisky ()V
+	public fun setExpensiveClearCostEstimationEnable ()V
+	public fun setIncludePortInAddress ()V
+	public fun setInitializeNewDatabase ()V
+	public fun setLockAware ()V
+	public fun setLogTransaction ()V
+	public fun setMaxRetryDelay (J)V
+	public fun setNextWriteNoWriteConflictRange ()V
+	public fun setPriorityBatch ()V
+	public fun setPrioritySystemImmediate ()V
+	public fun setRawAccess ()V
+	public fun setReadAheadDisable ()V
+	public fun setReadLockAware ()V
+	public fun setReadPriorityHigh ()V
+	public fun setReadPriorityLow ()V
+	public fun setReadPriorityNormal ()V
+	public fun setReadServerSideCacheDisable ()V
+	public fun setReadServerSideCacheEnable ()V
+	public fun setReadSystemKeys ()V
+	public fun setReadYourWritesDisable ()V
+	public fun setReportConflictingKeys ()V
+	public fun setRetryLimit (J)V
+	public fun setServerRequestTracing ()V
+	public fun setSizeLimit (J)V
+	public fun setSnapshotRywDisable ()V
+	public fun setSnapshotRywEnable ()V
+	public fun setSpanParent ([B)V
+	public fun setSpecialKeySpaceEnableWrites ()V
+	public fun setSpecialKeySpaceRelaxed ()V
+	public fun setTag (Ljava/lang/String;)V
+	public fun setTimeout (J)V
+	public fun setTransactionLoggingEnable (Ljava/lang/String;)V
+	public fun setTransactionLoggingMaxFieldLength (J)V
+	public fun setUseGrvCache ()V
+	public fun setUseProvisionalProxies ()V
+	public fun setUsedDuringCommitProtectionDisable ()V
+}
+
+public final class maryk/foundationdb/TupleUtil {
+	public static final field INSTANCE Lmaryk/foundationdb/TupleUtil;
+	public final fun decodeDoubleBits (J)D
+	public final fun decodeFloatBits (I)F
+	public final fun encodeDoubleBits (D)J
+	public final fun encodeFloatBits (F)I
+	public final fun minimalByteCount (J)I
+}
+
+public abstract interface class maryk/foundationdb/async/AsyncIterable {
+	public abstract fun asList ()Lmaryk/foundationdb/FdbFuture;
+	public abstract fun iterator ()Lmaryk/foundationdb/async/AsyncIterator;
+}
+
+public abstract interface class maryk/foundationdb/async/AsyncIterator {
+	public abstract fun cancel ()V
+	public abstract fun hasNext ()Z
+	public abstract fun next (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun onHasNext ()Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/async/AsyncUtil {
+	public static final field INSTANCE Lmaryk/foundationdb/async/AsyncUtil;
+	public final fun applySafely (Lkotlin/jvm/functions/Function1;Ljava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public final fun collect (Lmaryk/foundationdb/async/AsyncIterable;)Lmaryk/foundationdb/FdbFuture;
+	public final fun collectRemaining (Lmaryk/foundationdb/async/AsyncIterator;)Lmaryk/foundationdb/FdbFuture;
+	public final fun composeExceptionally (Lmaryk/foundationdb/FdbFuture;Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public final fun composeHandle (Lmaryk/foundationdb/FdbFuture;Lkotlin/jvm/functions/Function2;)Lmaryk/foundationdb/FdbFuture;
+	public final fun composeHandleAsync (Lmaryk/foundationdb/FdbFuture;Lkotlin/jvm/functions/Function2;)Lmaryk/foundationdb/FdbFuture;
+	public final fun forEach (Lmaryk/foundationdb/async/AsyncIterable;Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public final fun forEachRemaining (Lmaryk/foundationdb/async/AsyncIterator;Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/FdbFuture;
+	public final fun getAll (Ljava/util/Collection;)Lmaryk/foundationdb/FdbFuture;
+	public final fun getAll (Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public final fun getDONE ()Lmaryk/foundationdb/FdbFuture;
+	public final fun getREADY_FALSE ()Lmaryk/foundationdb/FdbFuture;
+	public final fun getREADY_TRUE ()Lmaryk/foundationdb/FdbFuture;
+	public final fun mapIterable (Lmaryk/foundationdb/async/AsyncIterable;Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/async/AsyncIterable;
+	public final fun mapIterator (Lmaryk/foundationdb/async/AsyncIterator;Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/async/AsyncIterator;
+	public final fun mapIterator (Lmaryk/foundationdb/async/CloseableAsyncIterator;Lkotlin/jvm/functions/Function1;)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+	public final fun success (Lmaryk/foundationdb/FdbFuture;)Lmaryk/foundationdb/FdbFuture;
+	public final fun tag (Lmaryk/foundationdb/FdbFuture;Ljava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public final fun whenAll (Ljava/util/Collection;)Lmaryk/foundationdb/FdbFuture;
+	public final fun whenAny (Ljava/util/Collection;)Lmaryk/foundationdb/FdbFuture;
+	public final fun whenReady (Lmaryk/foundationdb/FdbFuture;)Lmaryk/foundationdb/FdbFuture;
+	public final fun whileTrue (Lkotlin/jvm/functions/Function0;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public abstract interface class maryk/foundationdb/async/CloseableAsyncIterator : maryk/foundationdb/async/AsyncIterator {
+	public abstract fun close ()V
+}
+
+public final class maryk/foundationdb/async/FlowInteropKt {
+	public static final fun asFlow (Lmaryk/foundationdb/async/AsyncIterable;)Lkotlinx/coroutines/flow/Flow;
+}
+
+public final class maryk/foundationdb/async/ListAsyncIteratorKt {
+	public static final fun CloseableAsyncIterator (Ljava/util/List;Lkotlin/jvm/functions/Function0;)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+	public static final fun asyncIterable (Lkotlin/jvm/functions/Function0;)Lmaryk/foundationdb/async/AsyncIterable;
+	public static final fun closeableAsyncIterator (Ljava/util/List;Lkotlin/jvm/functions/Function0;)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+	public static synthetic fun closeableAsyncIterator$default (Ljava/util/List;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Lmaryk/foundationdb/async/CloseableAsyncIterator;
+}
+
+public abstract interface class maryk/foundationdb/directory/Directory {
+	public abstract fun create (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B[B)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun create$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public abstract fun createOrOpen (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun createOrOpen$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public abstract fun exists (Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun exists$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public abstract fun getDirectoryLayer ()Lmaryk/foundationdb/directory/DirectoryLayer;
+	public abstract fun getLayer ()[B
+	public abstract fun getPath ()Ljava/util/List;
+	public abstract fun list (Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun list$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public abstract fun move (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public abstract fun moveTo (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public abstract fun open (Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;[B)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun open$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public abstract fun remove (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun remove$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public abstract fun removeIfExists (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun removeIfExists$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/directory/Directory$DefaultImpls {
+	public static synthetic fun create$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun createOrOpen$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun exists$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun list$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun open$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun remove$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun removeIfExists$default (Lmaryk/foundationdb/directory/Directory;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/directory/DirectoryAlreadyExistsException : maryk/foundationdb/directory/DirectoryException {
+	public fun <init> (Ljava/util/List;)V
+}
+
+public class maryk/foundationdb/directory/DirectoryException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun getPath ()Ljava/util/List;
+}
+
+public final class maryk/foundationdb/directory/DirectoryLayer : maryk/foundationdb/directory/Directory {
+	public static final field Companion Lmaryk/foundationdb/directory/DirectoryLayer$Companion;
+	public fun <init> (Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;)V
+	public fun <init> (Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;Z)V
+	public synthetic fun <init> (Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Z)V
+	public final fun asDirectory ()Lmaryk/foundationdb/directory/Directory;
+	public final fun create (Lmaryk/foundationdb/Transaction;Ljava/util/List;[B[B)Lmaryk/foundationdb/FdbFuture;
+	public fun create (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B[B)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun create$default (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/Transaction;Ljava/util/List;[B[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public final fun createOrOpen (Lmaryk/foundationdb/Transaction;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun createOrOpen (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B)Lmaryk/foundationdb/FdbFuture;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun exists (Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun getDirectoryLayer ()Lmaryk/foundationdb/directory/DirectoryLayer;
+	public fun getLayer ()[B
+	public fun getPath ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun list (Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun move (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun moveTo (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public final fun open (Lmaryk/foundationdb/ReadTransaction;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun open (Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun open (Lmaryk/foundationdb/Transaction;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun remove (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun removeIfExists (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/directory/DirectoryLayer$Companion {
+	public final fun createWithContentSubspace (Lmaryk/foundationdb/subspace/Subspace;)Lmaryk/foundationdb/directory/Directory;
+	public final fun createWithNodeSubspace (Lmaryk/foundationdb/subspace/Subspace;)Lmaryk/foundationdb/directory/Directory;
+	public final fun forLayout (Lmaryk/foundationdb/directory/DirectoryLayout;Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;Z)Lmaryk/foundationdb/directory/DirectoryLayer;
+	public static synthetic fun forLayout$default (Lmaryk/foundationdb/directory/DirectoryLayer$Companion;Lmaryk/foundationdb/directory/DirectoryLayout;Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;ZILjava/lang/Object;)Lmaryk/foundationdb/directory/DirectoryLayer;
+	public final fun from (Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;Z)Lmaryk/foundationdb/directory/DirectoryLayer;
+	public static synthetic fun from$default (Lmaryk/foundationdb/directory/DirectoryLayer$Companion;Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;ZILjava/lang/Object;)Lmaryk/foundationdb/directory/DirectoryLayer;
+	public final fun getDEFAULT_CONTENT_SUBSPACE ()Lmaryk/foundationdb/subspace/Subspace;
+	public final fun getDEFAULT_NODE_SUBSPACE ()Lmaryk/foundationdb/subspace/Subspace;
+	public final fun getDefault ()Lmaryk/foundationdb/directory/DirectoryLayer;
+	public final fun getPARTITION_LAYER ()[B
+}
+
+public final class maryk/foundationdb/directory/DirectoryLayerOperationsKt {
+	public static final fun create (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B[B)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun create$default (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun createOrOpen (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun createOrOpen$default (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun exists (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun exists$default (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun list (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun list$default (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun move (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun moveTo (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun open (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;[B)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun open$default (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;[BILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun remove (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun remove$default (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+	public static final fun removeIfExists (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public static synthetic fun removeIfExists$default (Lmaryk/foundationdb/directory/DirectoryLayer;Lmaryk/foundationdb/TransactionContext;Ljava/util/List;ILjava/lang/Object;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/directory/DirectoryLayout : java/lang/Enum {
+	public static final field JAVA_CANONICAL Lmaryk/foundationdb/directory/DirectoryLayout;
+	public static final field LEGACY_NATIVE Lmaryk/foundationdb/directory/DirectoryLayout;
+	public static final field LEGACY_NATIVE_FLAT_PARTITIONS Lmaryk/foundationdb/directory/DirectoryLayout;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lmaryk/foundationdb/directory/DirectoryLayout;
+	public static fun values ()[Lmaryk/foundationdb/directory/DirectoryLayout;
+}
+
+public final class maryk/foundationdb/directory/DirectoryMigrationRequiredException : maryk/foundationdb/directory/DirectoryVersionException {
+	public fun <init> (Ljava/util/List;Lmaryk/foundationdb/directory/DirectoryLayout;)V
+	public final fun getDetectedLayout ()Lmaryk/foundationdb/directory/DirectoryLayout;
+	public final fun getPath ()Ljava/util/List;
+}
+
+public final class maryk/foundationdb/directory/DirectoryMoveException : java/lang/RuntimeException {
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/util/List;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getDestPath ()Ljava/util/List;
+	public final fun getSourcePath ()Ljava/util/List;
+}
+
+public class maryk/foundationdb/directory/DirectorySubspace : maryk/foundationdb/subspace/Subspace, maryk/foundationdb/directory/Directory {
+	public fun create (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun createOrOpen (Lmaryk/foundationdb/Transaction;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun createOrOpen (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;[B)Lmaryk/foundationdb/FdbFuture;
+	public fun exists (Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun getDirectoryLayer ()Lmaryk/foundationdb/directory/DirectoryLayer;
+	public fun getLayer ()[B
+	public fun getPath ()Ljava/util/List;
+	public fun list (Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun move (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun moveTo (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun open (Lmaryk/foundationdb/ReadTransactionContext;Ljava/util/List;[B)Lmaryk/foundationdb/FdbFuture;
+	public final fun open (Lmaryk/foundationdb/Transaction;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun pack ()[B
+	public fun pack (Lmaryk/foundationdb/tuple/Tuple;)[B
+	public fun remove (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+	public fun removeIfExists (Lmaryk/foundationdb/TransactionContext;Ljava/util/List;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public final class maryk/foundationdb/directory/DirectorySubspaceKt {
+	public static final fun asDirectory (Lmaryk/foundationdb/directory/DirectorySubspace;)Lmaryk/foundationdb/directory/Directory;
+}
+
+public final class maryk/foundationdb/directory/DirectoryTreeMigration {
+	public fun <init> (Lmaryk/foundationdb/directory/DirectoryTreeMigration$Configuration;Lmaryk/foundationdb/directory/DirectoryTreeMigration$Configuration;)V
+	public final fun copyAndVerify (Lmaryk/foundationdb/Database;Ljava/util/List;IILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun copyAndVerify$default (Lmaryk/foundationdb/directory/DirectoryTreeMigration;Lmaryk/foundationdb/Database;Ljava/util/List;IILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun copyBatch (Lmaryk/foundationdb/Transaction;Lmaryk/foundationdb/directory/DirectoryTreeMigration$Entry;[BIILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun copyBatch$default (Lmaryk/foundationdb/directory/DirectoryTreeMigration;Lmaryk/foundationdb/Transaction;Lmaryk/foundationdb/directory/DirectoryTreeMigration$Entry;[BIILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun inspect (Lmaryk/foundationdb/ReadTransaction;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun inspectRoots (Lmaryk/foundationdb/ReadTransaction;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun prepare (Lmaryk/foundationdb/Transaction;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun verifyBatch (Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/directory/DirectoryTreeMigration$Entry;[BILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun verifyBatch$default (Lmaryk/foundationdb/directory/DirectoryTreeMigration;Lmaryk/foundationdb/ReadTransaction;Lmaryk/foundationdb/directory/DirectoryTreeMigration$Entry;[BILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun verifyRoots (Lmaryk/foundationdb/ReadTransaction;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class maryk/foundationdb/directory/DirectoryTreeMigration$Configuration {
+	public fun <init> (Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/directory/DirectoryLayout;)V
+	public synthetic fun <init> (Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/directory/DirectoryLayout;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getLayout ()Lmaryk/foundationdb/directory/DirectoryLayout;
+}
+
+public final class maryk/foundationdb/directory/DirectoryTreeMigration$Entry {
+	public final fun getChildren ()Ljava/util/List;
+	public final fun getLayer ()[B
+	public final fun getPath ()Ljava/util/List;
+	public final fun isPartition ()Z
+}
+
+public final class maryk/foundationdb/directory/DirectoryTreeMigration$Progress {
+	public final fun getComplete ()Z
+	public final fun getCopiedKeys ()I
+	public final fun getNextSuffix ()[B
+}
+
+public class maryk/foundationdb/directory/DirectoryVersionException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/String;)V
+}
+
+public final class maryk/foundationdb/directory/MismatchedLayerException : maryk/foundationdb/directory/DirectoryException {
+	public fun <init> (Ljava/util/List;[B[B)V
+	public final fun getOpened ()[B
+	public final fun getStored ()[B
+}
+
+public final class maryk/foundationdb/directory/NoSuchDirectoryException : maryk/foundationdb/directory/DirectoryException {
+	public fun <init> (Ljava/util/List;)V
+}
+
+public final class maryk/foundationdb/directory/PathUtil {
+	public static final field INSTANCE Lmaryk/foundationdb/directory/PathUtil;
+	public final fun extend (Ljava/util/List;[Ljava/lang/String;)Ljava/util/List;
+	public final fun from ([Ljava/lang/String;)Ljava/util/List;
+	public final fun join (Ljava/util/List;Ljava/util/List;)Ljava/util/List;
+	public final fun popBack (Ljava/util/List;)Ljava/util/List;
+	public final fun popFront (Ljava/util/List;)Ljava/util/List;
+}
+
+public final class maryk/foundationdb/jvm/JvmInteropKt {
+	public static final fun asCommonEvent (Lcom/apple/foundationdb/EventKeeper$Event;)Lmaryk/foundationdb/Event;
+	public static final fun asJavaDatabase (Lmaryk/foundationdb/Database;)Lcom/apple/foundationdb/Database;
+	public static final fun asJavaEvent (Lmaryk/foundationdb/Event;)Lcom/apple/foundationdb/EventKeeper$Event;
+	public static final fun asJavaEventKeeper (Lmaryk/foundationdb/EventKeeper;)Lcom/apple/foundationdb/EventKeeper;
+	public static final fun asJavaFDB (Lmaryk/foundationdb/FDB;)Lcom/apple/foundationdb/FDB;
+	public static final fun asJavaReadTransaction (Lmaryk/foundationdb/ReadTransaction;)Lcom/apple/foundationdb/ReadTransaction;
+	public static final fun asJavaTenant (Lmaryk/foundationdb/Tenant;)Lcom/apple/foundationdb/Tenant;
+	public static final fun asJavaTransaction (Lmaryk/foundationdb/Transaction;)Lcom/apple/foundationdb/Transaction;
+	public static final fun createTransaction (Lmaryk/foundationdb/Database;Ljava/util/concurrent/Executor;Lmaryk/foundationdb/EventKeeper;)Lmaryk/foundationdb/Transaction;
+	public static final fun createTransaction (Lmaryk/foundationdb/Tenant;Ljava/util/concurrent/Executor;)Lmaryk/foundationdb/Transaction;
+	public static synthetic fun createTransaction$default (Lmaryk/foundationdb/Database;Ljava/util/concurrent/Executor;Lmaryk/foundationdb/EventKeeper;ILjava/lang/Object;)Lmaryk/foundationdb/Transaction;
+	public static final fun disableShutdownHook (Lmaryk/foundationdb/FDB;)V
+	public static final fun enableDirectBufferQuery (Lmaryk/foundationdb/FDB;Z)V
+	public static final fun fromStream (Lmaryk/foundationdb/tuple/Tuple$Companion;Ljava/util/stream/Stream;)Lmaryk/foundationdb/tuple/Tuple;
+	public static final fun getExecutor (Lmaryk/foundationdb/Database;)Ljava/util/concurrent/Executor;
+	public static final fun getExecutor (Lmaryk/foundationdb/ReadTransaction;)Ljava/util/concurrent/Executor;
+	public static final fun getExecutor (Lmaryk/foundationdb/Tenant;)Ljava/util/concurrent/Executor;
+	public static final fun isDirectBufferQueriesEnabled (Lmaryk/foundationdb/FDB;)Z
+	public static final fun open (Lmaryk/foundationdb/FDB;Ljava/lang/String;Ljava/util/concurrent/Executor;Lmaryk/foundationdb/EventKeeper;)Lmaryk/foundationdb/Database;
+	public static final fun open (Lmaryk/foundationdb/FDB;Ljava/lang/String;Lmaryk/foundationdb/EventKeeper;)Lmaryk/foundationdb/Database;
+	public static synthetic fun open$default (Lmaryk/foundationdb/FDB;Ljava/lang/String;Ljava/util/concurrent/Executor;Lmaryk/foundationdb/EventKeeper;ILjava/lang/Object;)Lmaryk/foundationdb/Database;
+	public static final fun packInto (Lmaryk/foundationdb/tuple/Tuple;Ljava/nio/ByteBuffer;)V
+	public static final fun resizeDirectBufferPool (Lmaryk/foundationdb/FDB;II)V
+	public static final fun startNetwork (Lmaryk/foundationdb/FDB;Ljava/util/concurrent/Executor;)V
+	public static final fun stream (Lmaryk/foundationdb/tuple/Tuple;)Ljava/util/stream/Stream;
+	public static final fun toCompletableFuture (Lmaryk/foundationdb/FdbFuture;)Ljava/util/concurrent/CompletableFuture;
+	public static final fun toFoundationDbFuture (Ljava/util/concurrent/CompletableFuture;)Lmaryk/foundationdb/FdbFuture;
+}
+
+public abstract interface class maryk/foundationdb/options/DatabaseOption {
+	public abstract fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$DatacenterId : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (Ljava/lang/String;)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lmaryk/foundationdb/options/DatabaseOption$DatacenterId;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$DatacenterId;Ljava/lang/String;ILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$DatacenterId;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$LocationCacheSize : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/DatabaseOption$LocationCacheSize;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$LocationCacheSize;JILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$LocationCacheSize;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBytes ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$MachineId : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (Ljava/lang/String;)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lmaryk/foundationdb/options/DatabaseOption$MachineId;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$MachineId;Ljava/lang/String;ILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$MachineId;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$MaxWatches : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/DatabaseOption$MaxWatches;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$MaxWatches;JILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$MaxWatches;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCount ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$SnapshotReadYourWritesDisable : maryk/foundationdb/options/DatabaseOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/DatabaseOption$SnapshotReadYourWritesDisable;
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$SnapshotReadYourWritesEnable : maryk/foundationdb/options/DatabaseOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/DatabaseOption$SnapshotReadYourWritesEnable;
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TestCausalReadRisky : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/DatabaseOption$TestCausalReadRisky;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$TestCausalReadRisky;JILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$TestCausalReadRisky;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionAutomaticIdempotency : maryk/foundationdb/options/DatabaseOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/DatabaseOption$TransactionAutomaticIdempotency;
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionBypassUnreadable : maryk/foundationdb/options/DatabaseOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/DatabaseOption$TransactionBypassUnreadable;
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionCausalReadRisky : maryk/foundationdb/options/DatabaseOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/DatabaseOption$TransactionCausalReadRisky;
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionIncludePortInAddress : maryk/foundationdb/options/DatabaseOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/DatabaseOption$TransactionIncludePortInAddress;
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionLoggingMaxFieldLength : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/DatabaseOption$TransactionLoggingMaxFieldLength;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$TransactionLoggingMaxFieldLength;JILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$TransactionLoggingMaxFieldLength;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLength ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionMaxRetryDelay : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/DatabaseOption$TransactionMaxRetryDelay;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$TransactionMaxRetryDelay;JILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$TransactionMaxRetryDelay;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMs ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionReportConflictingKeys : maryk/foundationdb/options/DatabaseOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/DatabaseOption$TransactionReportConflictingKeys;
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionRetryLimit : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/DatabaseOption$TransactionRetryLimit;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$TransactionRetryLimit;JILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$TransactionRetryLimit;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRetries ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionSizeLimit : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/DatabaseOption$TransactionSizeLimit;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$TransactionSizeLimit;JILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$TransactionSizeLimit;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBytes ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionTimeout : maryk/foundationdb/options/DatabaseOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/DatabaseOption$TransactionTimeout;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/DatabaseOption$TransactionTimeout;JILjava/lang/Object;)Lmaryk/foundationdb/options/DatabaseOption$TransactionTimeout;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMs ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$TransactionUsedDuringCommitProtectionDisable : maryk/foundationdb/options/DatabaseOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/DatabaseOption$TransactionUsedDuringCommitProtectionDisable;
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOption$UseConfigDatabase : maryk/foundationdb/options/DatabaseOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/DatabaseOption$UseConfigDatabase;
+	public fun applyTo (Lmaryk/foundationdb/DatabaseOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/DatabaseOptionBuilder {
+	public fun <init> (Lmaryk/foundationdb/DatabaseOptionSink;Ljava/util/List;)V
+	public final fun datacenterId (Ljava/lang/String;)V
+	public final fun locationCacheSize (J)V
+	public final fun machineId (Ljava/lang/String;)V
+	public final fun maxWatches (J)V
+	public final fun snapshotReadYourWritesDisable ()V
+	public final fun snapshotReadYourWritesEnable ()V
+	public final fun testCausalReadRisky (J)V
+	public final fun transactionAutomaticIdempotency ()V
+	public final fun transactionBypassUnreadable ()V
+	public final fun transactionCausalReadRisky ()V
+	public final fun transactionIncludePortInAddress ()V
+	public final fun transactionLoggingMaxFieldLength (J)V
+	public final fun transactionMaxRetryDelay (J)V
+	public final fun transactionReportConflictingKeys ()V
+	public final fun transactionRetryLimit (J)V
+	public final fun transactionSizeLimit (J)V
+	public final fun transactionTimeout (J)V
+	public final fun transactionUsedDuringCommitProtectionDisable ()V
+	public final fun useConfigDatabase ()V
+}
+
+public final class maryk/foundationdb/options/DatabaseOptionHelpersKt {
+	public static final fun apply (Lmaryk/foundationdb/DatabaseOptions;Ljava/lang/Iterable;)V
+	public static final fun apply (Lmaryk/foundationdb/DatabaseOptions;Lmaryk/foundationdb/options/DatabaseOption;)V
+	public static final fun applyTo (Ljava/lang/Iterable;Lmaryk/foundationdb/DatabaseOptionSink;)V
+	public static final fun configure (Lmaryk/foundationdb/DatabaseOptions;Lkotlin/jvm/functions/Function1;)V
+	public static final fun databaseOptions (Lkotlin/jvm/functions/Function1;)Ljava/util/List;
+}
+
+public abstract interface class maryk/foundationdb/options/TransactionOption {
+	public abstract fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$AccessSystemKeys : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$AccessSystemKeys;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$AuthorizationToken : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (Ljava/lang/String;)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lmaryk/foundationdb/options/TransactionOption$AuthorizationToken;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$AuthorizationToken;Ljava/lang/String;ILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$AuthorizationToken;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$AutoThrottleTag : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (Ljava/lang/String;)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lmaryk/foundationdb/options/TransactionOption$AutoThrottleTag;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$AutoThrottleTag;Ljava/lang/String;ILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$AutoThrottleTag;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$AutomaticIdempotency : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$AutomaticIdempotency;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$BypassStorageQuota : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$BypassStorageQuota;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$BypassUnreadable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$BypassUnreadable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$CausalReadDisable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$CausalReadDisable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$CausalReadRisky : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$CausalReadRisky;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$CausalWriteRisky : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$CausalWriteRisky;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$DebugRetryLogging : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (Ljava/lang/String;)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lmaryk/foundationdb/options/TransactionOption$DebugRetryLogging;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$DebugRetryLogging;Ljava/lang/String;ILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$DebugRetryLogging;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$DebugTransactionIdentifier : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (Ljava/lang/String;)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lmaryk/foundationdb/options/TransactionOption$DebugTransactionIdentifier;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$DebugTransactionIdentifier;Ljava/lang/String;ILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$DebugTransactionIdentifier;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$DurabilityDatacenter : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$DurabilityDatacenter;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$DurabilityDevNullIsWebScale : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$DurabilityDevNullIsWebScale;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$DurabilityRisky : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$DurabilityRisky;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ExpensiveClearCostEstimationEnable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ExpensiveClearCostEstimationEnable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$IncludePortInAddress : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$IncludePortInAddress;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$InitializeNewDatabase : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$InitializeNewDatabase;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$LockAware : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$LockAware;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$LogTransaction : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$LogTransaction;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$MaxRetryDelay : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/TransactionOption$MaxRetryDelay;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$MaxRetryDelay;JILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$MaxRetryDelay;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMs ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$NextWriteNoWriteConflictRange : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$NextWriteNoWriteConflictRange;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$PriorityBatch : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$PriorityBatch;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$PrioritySystemImmediate : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$PrioritySystemImmediate;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$RawAccess : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$RawAccess;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReadAheadDisable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReadAheadDisable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReadLockAware : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReadLockAware;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReadPriorityHigh : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReadPriorityHigh;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReadPriorityLow : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReadPriorityLow;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReadPriorityNormal : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReadPriorityNormal;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReadServerSideCacheDisable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReadServerSideCacheDisable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReadServerSideCacheEnable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReadServerSideCacheEnable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReadSystemKeys : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReadSystemKeys;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReadYourWritesDisable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReadYourWritesDisable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ReportConflictingKeys : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ReportConflictingKeys;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$RetryLimit : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/TransactionOption$RetryLimit;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$RetryLimit;JILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$RetryLimit;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLimit ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$ServerRequestTracing : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$ServerRequestTracing;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$SizeLimit : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/TransactionOption$SizeLimit;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$SizeLimit;JILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$SizeLimit;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBytes ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$SnapshotRywDisable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$SnapshotRywDisable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$SnapshotRywEnable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$SnapshotRywEnable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$SpanParent : maryk/foundationdb/options/TransactionOption {
+	public fun <init> ([B)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()[B
+	public final fun copy ([B)Lmaryk/foundationdb/options/TransactionOption$SpanParent;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$SpanParent;[BILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$SpanParent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBytes ()[B
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$SpecialKeySpaceEnableWrites : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$SpecialKeySpaceEnableWrites;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$SpecialKeySpaceRelaxed : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$SpecialKeySpaceRelaxed;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$Tag : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (Ljava/lang/String;)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lmaryk/foundationdb/options/TransactionOption$Tag;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$Tag;Ljava/lang/String;ILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$Tag;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$Timeout : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/TransactionOption$Timeout;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$Timeout;JILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$Timeout;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMs ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$TransactionLoggingEnable : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (Ljava/lang/String;)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lmaryk/foundationdb/options/TransactionOption$TransactionLoggingEnable;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$TransactionLoggingEnable;Ljava/lang/String;ILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$TransactionLoggingEnable;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$TransactionLoggingMaxFieldLength : maryk/foundationdb/options/TransactionOption {
+	public fun <init> (J)V
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+	public final fun component1 ()J
+	public final fun copy (J)Lmaryk/foundationdb/options/TransactionOption$TransactionLoggingMaxFieldLength;
+	public static synthetic fun copy$default (Lmaryk/foundationdb/options/TransactionOption$TransactionLoggingMaxFieldLength;JILjava/lang/Object;)Lmaryk/foundationdb/options/TransactionOption$TransactionLoggingMaxFieldLength;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLength ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/options/TransactionOption$UseGrvCache : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$UseGrvCache;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$UseProvisionalProxies : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$UseProvisionalProxies;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOption$UsedDuringCommitProtectionDisable : maryk/foundationdb/options/TransactionOption {
+	public static final field INSTANCE Lmaryk/foundationdb/options/TransactionOption$UsedDuringCommitProtectionDisable;
+	public fun applyTo (Lmaryk/foundationdb/TransactionOptionSink;)V
+}
+
+public final class maryk/foundationdb/options/TransactionOptionBuilder {
+	public fun <init> (Lmaryk/foundationdb/TransactionOptionSink;Ljava/util/List;)V
+	public final fun accessSystemKeys ()V
+	public final fun authorizationToken (Ljava/lang/String;)V
+	public final fun autoThrottleTag (Ljava/lang/String;)V
+	public final fun automaticIdempotency ()V
+	public final fun bypassStorageQuota ()V
+	public final fun bypassUnreadable ()V
+	public final fun causalReadDisable ()V
+	public final fun causalReadRisky ()V
+	public final fun causalWriteRisky ()V
+	public final fun debugRetryLogging (Ljava/lang/String;)V
+	public final fun debugTransactionIdentifier (Ljava/lang/String;)V
+	public final fun durabilityDatacenter ()V
+	public final fun durabilityDevNullIsWebScale ()V
+	public final fun durabilityRisky ()V
+	public final fun expensiveClearCostEstimationEnable ()V
+	public final fun includePortInAddress ()V
+	public final fun initializeNewDatabase ()V
+	public final fun lockAware ()V
+	public final fun logTransaction ()V
+	public final fun maxRetryDelay (J)V
+	public final fun nextWriteNoWriteConflictRange ()V
+	public final fun priorityBatch ()V
+	public final fun prioritySystemImmediate ()V
+	public final fun rawAccess ()V
+	public final fun readAheadDisable ()V
+	public final fun readLockAware ()V
+	public final fun readPriorityHigh ()V
+	public final fun readPriorityLow ()V
+	public final fun readPriorityNormal ()V
+	public final fun readServerSideCacheDisable ()V
+	public final fun readServerSideCacheEnable ()V
+	public final fun readSystemKeys ()V
+	public final fun readYourWritesDisable ()V
+	public final fun reportConflictingKeys ()V
+	public final fun retryLimit (J)V
+	public final fun serverRequestTracing ()V
+	public final fun sizeLimit (J)V
+	public final fun snapshotReadYourWritesDisable ()V
+	public final fun snapshotReadYourWritesEnable ()V
+	public final fun spanParent ([B)V
+	public final fun specialKeySpaceEnableWrites ()V
+	public final fun specialKeySpaceRelaxed ()V
+	public final fun tag (Ljava/lang/String;)V
+	public final fun timeout (J)V
+	public final fun transactionLoggingEnable (Ljava/lang/String;)V
+	public final fun transactionLoggingMaxFieldLength (J)V
+	public final fun useGrvCache ()V
+	public final fun useProvisionalProxies ()V
+	public final fun usedDuringCommitProtectionDisable ()V
+}
+
+public final class maryk/foundationdb/options/TransactionOptionHelpersKt {
+	public static final fun apply (Lmaryk/foundationdb/TransactionOptions;Ljava/lang/Iterable;)V
+	public static final fun apply (Lmaryk/foundationdb/TransactionOptions;Lmaryk/foundationdb/options/TransactionOption;)V
+	public static final fun applyTo (Ljava/lang/Iterable;Lmaryk/foundationdb/TransactionOptionSink;)V
+	public static final fun configure (Lmaryk/foundationdb/TransactionOptions;Lkotlin/jvm/functions/Function1;)V
+	public static final fun transactionOptions (Lkotlin/jvm/functions/Function1;)Ljava/util/List;
+}
+
+public final class maryk/foundationdb/platform/TempDirKt {
+	public static final fun createTempDirectory (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/subspace/PrefixMigration {
+	public fun <init> (Lmaryk/foundationdb/subspace/Subspace;Lmaryk/foundationdb/subspace/Subspace;)V
+	public final fun apply (Lmaryk/foundationdb/Transaction;Lmaryk/foundationdb/subspace/PrefixMigration$Batch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun inspect (Lmaryk/foundationdb/ReadTransaction;IILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun inspect$default (Lmaryk/foundationdb/subspace/PrefixMigration;Lmaryk/foundationdb/ReadTransaction;IILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class maryk/foundationdb/subspace/PrefixMigration$Batch {
+	public final fun entries ()Ljava/util/List;
+	public final fun getByteCount ()J
+	public final fun getKeyCount ()I
+}
+
+public class maryk/foundationdb/subspace/Subspace {
+	public fun <init> (Lmaryk/foundationdb/tuple/Tuple;)V
+	public fun <init> (Lmaryk/foundationdb/tuple/Tuple;[B)V
+	public fun <init> ([B)V
+	public fun contains ([B)Z
+	public fun equals (Ljava/lang/Object;)Z
+	public fun get (Ljava/lang/Object;)Lmaryk/foundationdb/subspace/Subspace;
+	public fun get (Lmaryk/foundationdb/tuple/Tuple;)Lmaryk/foundationdb/subspace/Subspace;
+	public fun getKey ()[B
+	public fun hashCode ()I
+	public fun pack ()[B
+	public fun pack (Ljava/lang/Object;)[B
+	public fun pack (Lmaryk/foundationdb/tuple/Tuple;)[B
+	public fun packWithVersionstamp (Lmaryk/foundationdb/tuple/Tuple;)[B
+	public fun range ()Lmaryk/foundationdb/Range;
+	public fun range (Lmaryk/foundationdb/tuple/Tuple;)Lmaryk/foundationdb/Range;
+	public fun subspace (Lmaryk/foundationdb/tuple/Tuple;)Lmaryk/foundationdb/subspace/Subspace;
+	public fun unpack ([B)Lmaryk/foundationdb/tuple/Tuple;
+}
+
+public final class maryk/foundationdb/subspace/SubspaceLayout : java/lang/Enum {
+	public static final field JAVA_CANONICAL Lmaryk/foundationdb/subspace/SubspaceLayout;
+	public static final field LEGACY_NATIVE Lmaryk/foundationdb/subspace/SubspaceLayout;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lmaryk/foundationdb/subspace/SubspaceLayout;
+	public static fun values ()[Lmaryk/foundationdb/subspace/SubspaceLayout;
+}
+
+public final class maryk/foundationdb/subspace/SubspaceLayoutKt {
+	public static final fun subspace (Lmaryk/foundationdb/tuple/Tuple;[BLmaryk/foundationdb/subspace/SubspaceLayout;)Lmaryk/foundationdb/subspace/Subspace;
+	public static synthetic fun subspace$default (Lmaryk/foundationdb/tuple/Tuple;[BLmaryk/foundationdb/subspace/SubspaceLayout;ILjava/lang/Object;)Lmaryk/foundationdb/subspace/Subspace;
+}
+
+public final class maryk/foundationdb/tuple/Tuple : java/lang/Comparable, java/lang/Iterable, kotlin/jvm/internal/markers/KMappedMarker {
+	public static final field Companion Lmaryk/foundationdb/tuple/Tuple$Companion;
+	public final fun add (Ljava/lang/Object;)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun add ([BII)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun addAll (Ljava/util/List;)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun addAll (Lmaryk/foundationdb/tuple/Tuple;)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun addObject (Ljava/lang/Object;)Lmaryk/foundationdb/tuple/Tuple;
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public fun compareTo (Lmaryk/foundationdb/tuple/Tuple;)I
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun get (I)Ljava/lang/Object;
+	public final fun getBigInteger (I)Lmaryk/foundationdb/tuple/TupleInteger;
+	public final fun getBoolean (I)Z
+	public final fun getBytes (I)[B
+	public final fun getDouble (I)D
+	public final fun getFloat (I)F
+	public final fun getItems ()Ljava/util/List;
+	public final fun getLong (I)J
+	public final fun getNestedList (I)Ljava/util/List;
+	public final fun getNestedTuple (I)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun getPackedSize ()I
+	public final fun getSize ()I
+	public final fun getString (I)Ljava/lang/String;
+	public final fun getTuple (I)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun getUuid (I)Lkotlin/uuid/Uuid;
+	public final fun getVersionstamp (I)Lmaryk/foundationdb/tuple/Versionstamp;
+	public final fun hasIncompleteVersionstamp ()Z
+	public fun hashCode ()I
+	public final fun isEmpty ()Z
+	public fun iterator ()Ljava/util/Iterator;
+	public final fun pack ()[B
+	public final fun pack ([B)[B
+	public final fun packWithVersionstamp ()[B
+	public final fun packWithVersionstamp ([B)[B
+	public final fun popBack ()Lmaryk/foundationdb/tuple/Tuple;
+	public final fun popFront ()Lmaryk/foundationdb/tuple/Tuple;
+	public final fun range ()Lmaryk/foundationdb/Range;
+	public final fun range ([B)Lmaryk/foundationdb/Range;
+}
+
+public final class maryk/foundationdb/tuple/Tuple$Companion {
+	public final fun from ([Ljava/lang/Object;)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun fromBytes ([B)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun fromBytes ([BII)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun fromItems (Ljava/lang/Iterable;)Lmaryk/foundationdb/tuple/Tuple;
+	public final fun fromList (Ljava/util/List;)Lmaryk/foundationdb/tuple/Tuple;
+}
+
+public final class maryk/foundationdb/tuple/TupleInteger : java/lang/Number, java/lang/Comparable {
+	public static final field Companion Lmaryk/foundationdb/tuple/TupleInteger$Companion;
+	public final fun byteValue ()B
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public fun compareTo (Lmaryk/foundationdb/tuple/TupleInteger;)I
+	public final fun doubleValue ()D
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun floatValue ()F
+	public final fun getSign ()I
+	public fun hashCode ()I
+	public final fun intValue ()I
+	public final fun longValue ()J
+	public final fun magnitudeBytes ()[B
+	public final fun shortValue ()S
+	public fun toByte ()B
+	public fun toDouble ()D
+	public fun toFloat ()F
+	public fun toInt ()I
+	public fun toLong ()J
+	public final fun toLongExact ()J
+	public fun toShort ()S
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class maryk/foundationdb/tuple/TupleInteger$Companion {
+	public final fun fromLong (J)Lmaryk/foundationdb/tuple/TupleInteger;
+	public final fun fromMagnitude (I[B)Lmaryk/foundationdb/tuple/TupleInteger;
+	public final fun parse (Ljava/lang/String;)Lmaryk/foundationdb/tuple/TupleInteger;
+}
+
+public final class maryk/foundationdb/tuple/TupleIntegerJvmKt {
+	public static final fun toJavaBigInteger (Lmaryk/foundationdb/tuple/TupleInteger;)Ljava/math/BigInteger;
+	public static final fun toTupleInteger (Ljava/math/BigInteger;)Lmaryk/foundationdb/tuple/TupleInteger;
+}
+
+public final class maryk/foundationdb/tuple/Versionstamp : java/lang/Comparable {
+	public static final field Companion Lmaryk/foundationdb/tuple/Versionstamp$Companion;
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public fun compareTo (Lmaryk/foundationdb/tuple/Versionstamp;)I
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBytes ()[B
+	public final fun getTransactionVersion ()[B
+	public final fun getUserVersion ()I
+	public fun hashCode ()I
+	public final fun isComplete ()Z
+	public final fun transactionVersion ()[B
+}
+
+public final class maryk/foundationdb/tuple/Versionstamp$Companion {
+	public final fun complete ([BI)Lmaryk/foundationdb/tuple/Versionstamp;
+	public static synthetic fun complete$default (Lmaryk/foundationdb/tuple/Versionstamp$Companion;[BIILjava/lang/Object;)Lmaryk/foundationdb/tuple/Versionstamp;
+	public final fun fromBytes ([B)Lmaryk/foundationdb/tuple/Versionstamp;
+	public final fun getLENGTH ()I
+	public final fun incomplete (I)Lmaryk/foundationdb/tuple/Versionstamp;
+	public static synthetic fun incomplete$default (Lmaryk/foundationdb/tuple/Versionstamp$Companion;IILjava/lang/Object;)Lmaryk/foundationdb/tuple/Versionstamp;
+	public final fun unpackUserVersion ([BI)I
+}
+

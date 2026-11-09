@@ -1,4 +1,5 @@
 
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
@@ -101,6 +102,9 @@ val downloadFoundationDbHeaders = tasks.register("downloadFoundationDbHeaders") 
 }
 
 kotlin {
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation()
+
     jvm {
         testRuns["test"].executionTask.configure {
             val localLib = foundationDbDir.resolve("bin/lib").absolutePath

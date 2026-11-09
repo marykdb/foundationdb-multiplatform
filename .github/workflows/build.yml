@@ -17,7 +17,11 @@ jobs:
         include:
           - os: macos-latest
             display-name: macOS Arm
-            command: ./gradlew --stacktrace --info macosArm64Test jvmTest
+            command: |
+              ./gradlew --stacktrace --info checkKotlinAbi allMetadataJar generateMetadataFileForJvmPublication generatePomFileForJvmPublication macosArm64Test jvmTest
+              ./gradlew --stacktrace --info '-PfoundationDbNativeTestFilter=maryk.foundationdb.LegacyApiVersionNativeTest.*' macosArm64Test
+              ./gradlew --stacktrace --info '-PfoundationDbNativeTestFilter=maryk.foundationdb.LegacyVersionstampApiNativeTest.*' macosArm64Test
+              python3 verification/check-external-consumer.py
             shell: bash
           - os: macos-26-intel
             display-name: macOS Intel
