@@ -91,25 +91,32 @@ class TenantIteratorOwnershipTest {
         assertEquals(1, closed)
     }
 
-    @Test fun cancellingPendingOrUnstartedReadClosesTransactionOwnership() = runBlocking {
+    @Test fun pendingReadinessCancellationEventuallyClosesOwnership() = runBlocking {
         withTimeout(10_000) {
-            val source = Source()
-            val entered = CompletableDeferred<Unit>()
-            source.available = { fdbFuture { entered.complete(Unit); awaitCancellation() } }
-            var closed = 0
-            val ownerClosed = CompletableDeferred<Unit>()
-            val iterator = TenantListingIterator(source) { closed++; ownerClosed.complete(Unit) }
-            val pending = iterator.onHasNext()
-            entered.await()
-            pending.cancel()
-            ownerClosed.await()
-            assertEquals(1, closed)
-            assertEquals(1, source.cancels)
-            assertTrue(pending.isCancelled)
-            val queuedSource = Source()
-            var queuedClosed = 0
-            TenantListingIterator(queuedSource) { queuedClosed++ }.onHasNext().cancel()
-            assertEquals(1, queuedClosed)
+            repeat(100) {
+                for (waitUntilStarted in listOf(false, true)) {
+                    val entered = CompletableDeferred<Unit>()
+                    val source = Source().apply {
+                        available = { fdbFuture { entered.complete(Unit); awaitCancellation() } }
+                    }
+                    var closed = 0
+                    val ownerClosed = CompletableDeferred<Unit>()
+                    val iterator = TenantListingIterator(source) { closed++; ownerClosed.complete(Unit) }
+                    val pending = iterator.onHasNext()
+                    if (waitUntilStarted) entered.await()
+                    // Keep readiness pending: cancellation of a completed successful read
+                    // intentionally leaves ownership available, tested separately above.
+                    pending.cancel()
+                    // Cancellation requests cleanup; a concurrent callback may own it.
+                    ownerClosed.await()
+                    assertEquals(1, closed)
+                    assertEquals(1, source.cancels)
+                    assertTrue(pending.isCancelled)
+                    pending.cancel(); iterator.close()
+                    assertEquals(1, closed)
+                    assertEquals(1, source.cancels)
+                }
+            }
         }
     }
 }
