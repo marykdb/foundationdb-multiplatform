@@ -133,6 +133,7 @@ kotlin {
     val nativeTargets = listOf(macosArm64Target, macosX64Target, linuxX64Target, linuxArm64Target)
     val headersIncludeDirProvider = foundationDbHeadersIncludeDir.map { it.asFile }
     val hostLibDir = foundationDbDir.resolve("bin/lib").absolutePath
+    val crossArmLibrary = providers.gradleProperty("foundationDbLinuxArm64LibraryDir").orNull
 
     fun KotlinNativeTarget.configureFoundationDbInterop() {
         val includeDir = headersIncludeDirProvider.get()
@@ -149,9 +150,13 @@ kotlin {
     nativeTargets.forEach { target ->
         target.configureFoundationDbInterop()
         target.binaries.all {
-            linkerOpts("-L$hostLibDir", "-lfdb_c", "-Wl,-rpath,$hostLibDir")
+            val libraryDir = if (target == linuxArm64Target && crossArmLibrary != null) crossArmLibrary else hostLibDir
+            linkerOpts("-L$libraryDir", "-lfdb_c", "-Wl,-rpath,$libraryDir")
             linkTaskProvider.configure {
-                dependsOn(installFoundationDB)
+                if (target == linuxArm64Target && crossArmLibrary != null) {
+                    inputs.file(file(crossArmLibrary).resolve("libfdb_c.so"))
+                    doFirst { check(file(crossArmLibrary).resolve("libfdb_c.so").isFile) { "Missing cross-link ARM64 client library" } }
+                } else dependsOn(installFoundationDB)
             }
         }
     }

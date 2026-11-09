@@ -119,6 +119,10 @@ against generated artifacts in a temporary filesystem Maven repository. It check
 root and JVM coordinates, plus JVM POM-only resolution, without project substitution
 or explicitly adding the exposed coroutine/Java dependencies. It publishes nothing remotely.
 
+Linux ARM64 is a target, not a Kotlin/Native compiler host. CI cross-links tests on
+Linux x64 against a verified ARM64 C client and executes them on an ARM64 runner.
+See [Kotlin/Native target support](https://kotlinlang.org/docs/native-target-support.html).
+
 The optional Native counter benchmark runs with
 `-PfoundationDbNativeTestFilter=maryk.foundationdb.MetricsBenchmarkNativeTest.*`.
 Timing results are diagnostic rather than performance assertions.

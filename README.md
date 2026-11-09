@@ -77,8 +77,10 @@ Additional examples live in `src/commonTest/kotlin/maryk/foundationdb` and mirro
 ## Development workflow
 
 - `./gradlew jvmTest` – installs a local FoundationDB server (macOS/Linux), starts it, and runs the JVM tests.
-- `./gradlew macosArm64Test`, `macosX64Test`, `linuxX64Test`, `linuxArm64Test` – build/link native binaries and run the
-  platform specific tests. These tasks also install FoundationDB locally if needed.
+- `./gradlew macosArm64Test`, `macosX64Test`, `linuxX64Test` – build/link and run tests on the matching supported
+  compiler host. These tasks also install FoundationDB locally if needed.
+- Linux ARM64 tests are cross-compiled on a supported compiler host and executed directly on ARM64.
+  See the [development checks](documentation/api-design.md#development-checks) and CI workflow.
 - `foundationdb/scripts/install-foundationdb.sh` – helper that downloads the official Apple release for the current host
   and copies `fdbserver`, `fdbcli`, and `libfdb_c` into `foundationdb/bin` for local development.
 

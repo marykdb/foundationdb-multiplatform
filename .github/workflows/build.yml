@@ -31,18 +31,6 @@ jobs:
             display-name: Linux x64
             command: ./gradlew --stacktrace --info linuxX64Test jvmTest
             shell: bash
-          - os: ubuntu-24.04-arm
-            display-name: Linux Arm64 FoundationDB smoke
-            command: |
-              set -euo pipefail
-              trap 'FDB_CLEAN_MODE=all bash foundationdb/scripts/stop-fdb-for-tests.sh' EXIT
-              bash foundationdb/scripts/install-foundationdb.sh
-              file foundationdb/bin/fdbserver foundationdb/bin/fdbcli foundationdb/bin/lib/libfdb_c.so | grep -q 'ARM aarch64'
-              foundationdb/bin/fdbserver --version
-              foundationdb/bin/fdbcli --version
-              bash foundationdb/scripts/run-fdb-for-tests.sh
-              FDB_CLUSTER_FILE="$PWD/foundationdb/fdb.cluster" foundationdb/bin/fdbcli --exec 'status minimal' | grep -q 'The database is available'
-            shell: bash
     name: ${{ matrix.display-name }}
     runs-on: ${{ matrix.os }}
     defaults:
@@ -63,3 +51,48 @@ jobs:
 
       - name: Run ${{ matrix.display-name }}
         run: ${{ matrix.command }}
+
+  build-linux-arm64-tests:
+    name: Cross-compile Linux ARM64 tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Extract verified ARM64 link library
+        run: bash foundationdb/scripts/prepare-linux-arm64-client.sh
+      - name: Cross-compile on supported x64 compiler host
+        run: ./gradlew --stacktrace --info -PfoundationDbLinuxArm64LibraryDir="$PWD/build/linux-arm64-client/lib" linkDebugTestLinuxArm64
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-arm64-binding-tests
+          path: build/bin/linuxArm64/debugTest/test.kexe
+          if-no-files-found: error
+
+  run-linux-arm64-tests:
+    name: Linux ARM64 binding runtime tests
+    needs: build-linux-arm64-tests
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: linux-arm64-binding-tests
+          path: build/linux-arm64-tests
+      - name: Run cross-compiled suite against native ARM64 FoundationDB
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'FDB_CLEAN_MODE=all bash foundationdb/scripts/stop-fdb-for-tests.sh' EXIT
+          bash foundationdb/scripts/install-foundationdb.sh
+          file foundationdb/bin/fdbserver foundationdb/bin/fdbcli foundationdb/bin/lib/libfdb_c.so | grep -q 'ARM aarch64'
+          bash foundationdb/scripts/run-fdb-for-tests.sh
+          export FDB_CLUSTER_FILE="$PWD/foundationdb/fdb.cluster"
+          export LD_LIBRARY_PATH="$PWD/foundationdb/bin/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          chmod +x build/linux-arm64-tests/test.kexe
+          build/linux-arm64-tests/test.kexe --ktest_logger=SIMPLE '--ktest_filter=*-maryk.foundationdb.LegacyApiVersionNativeTest.*:maryk.foundationdb.LegacyVersionstampApiNativeTest.*:maryk.foundationdb.MetricsBenchmarkNativeTest.*'
+          build/linux-arm64-tests/test.kexe --ktest_logger=SIMPLE '--ktest_filter=maryk.foundationdb.LegacyApiVersionNativeTest.*'
+          build/linux-arm64-tests/test.kexe --ktest_logger=SIMPLE '--ktest_filter=maryk.foundationdb.LegacyVersionstampApiNativeTest.*'
