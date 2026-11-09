@@ -31,7 +31,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("io.maryk.foundationdb:foundationdb-multiplatform:7.3.79")
+                implementation("io.maryk.foundationdb:foundationdb-multiplatform:7.3.81")
             }
         }
     }
