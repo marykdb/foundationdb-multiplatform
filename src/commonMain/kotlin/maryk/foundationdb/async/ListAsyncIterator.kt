@@ -1,6 +1,11 @@
+@file:OptIn(ExperimentalAtomicApi::class)
+
 package maryk.foundationdb.async
 
 import maryk.foundationdb.FdbFuture
+import maryk.foundationdb.failedFdbFuture
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import maryk.foundationdb.completedFdbFuture
 
 internal open class ListAsyncIterator<T> : AsyncIterator<T> {
@@ -19,11 +24,43 @@ fun <T> asyncIterable(iteratorFactory: () -> AsyncIterator<T>): AsyncIterable<T>
     override fun asList(): FdbFuture<List<T>> = AsyncUtil.collect(this)
 }
 
+/**
+ * An owned list cursor. Exhaustion observed through hasNext/onHasNext, explicit close,
+ * and cancellation invoke closeAction once. A closed cursor exposes no further rows.
+ */
 fun <T> closeableAsyncIterator(items: List<T>, closeAction: () -> Unit = {}): CloseableAsyncIterator<T> =
     CloseableAsyncIterator(items, closeAction)
 
 /** Source-compatible list factory; custom implementations can implement the interface directly. */
 fun <T> CloseableAsyncIterator(items: List<T>, closeAction: () -> Unit): CloseableAsyncIterator<T> =
-    ownedCloseableIterator(object : ListAsyncIterator<T>() { init { initialise(items) } }, closeAction)
+    ListCloseableAsyncIterator(items, closeAction)
 
 internal expect fun <T> ownedCloseableIterator(source: AsyncIterator<T>, closeAction: () -> Unit): CloseableAsyncIterator<T>
+
+private class ListCloseableAsyncIterator<T>(items: List<T>, private val closeAction: () -> Unit) :
+    ListAsyncIterator<T>(), CloseableAsyncIterator<T> {
+    private val closed = AtomicInt(0)
+    init { initialise(items) }
+
+    override fun hasNext(): Boolean {
+        if (closed.load() != 0) return false
+        return super.hasNext().also { if (!it) close() }
+    }
+
+    override suspend fun next(): T {
+        if (!hasNext()) throw NoSuchElementException("Iterator is closed or exhausted")
+        return super.next()
+    }
+
+    override fun onHasNext(): FdbFuture<Boolean> =
+        try { completedFdbFuture(hasNext()) } catch (error: Throwable) { failedFdbFuture(error) }
+
+    override fun cancel() = close()
+
+    override fun close() {
+        if (closed.compareAndSet(0, 1)) {
+            super.cancel()
+            closeAction()
+        }
+    }
+}

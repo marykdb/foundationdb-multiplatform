@@ -107,6 +107,13 @@ kotlin {
 
     jvm {
         testRuns["test"].executionTask.configure {
+            filter {
+                val isolated = providers.gradleProperty("foundationDbJvmTestFilter").orNull
+                if (isolated == null) {
+                    excludeTestsMatching("maryk.foundationdb.LegacyApiVersionTest")
+                    excludeTestsMatching("maryk.foundationdb.LegacyVersionstampApiTest")
+                } else includeTestsMatching(isolated)
+            }
             val localLib = foundationDbDir.resolve("bin/lib").absolutePath
             val sysLib = "/usr/local/lib"
             val pathSeparator = File.pathSeparator
@@ -216,7 +223,7 @@ tasks.withType<KotlinNativeTest>().configureEach {
     args = args + "--ktest_logger=SIMPLE"
     // API selection is process-wide: the older-version startup regression runs in isolation.
     val filter = providers.gradleProperty("foundationDbNativeTestFilter").orNull
-        ?: "*-maryk.foundationdb.LegacyApiVersionNativeTest.*:maryk.foundationdb.LegacyVersionstampApiNativeTest.*:maryk.foundationdb.MetricsBenchmarkNativeTest.*"
+        ?: "*-maryk.foundationdb.LegacyApiVersionTest.*:maryk.foundationdb.LegacyVersionstampApiTest.*:maryk.foundationdb.MetricsBenchmarkNativeTest.*"
     args = args + "--ktest_filter=$filter"
     environment("FDB_CLUSTER_FILE", foundationDbDir.resolve("fdb.cluster").absolutePath)
     environment("DYLD_LIBRARY_PATH", foundationDbDir.resolve("bin/lib").absolutePath)

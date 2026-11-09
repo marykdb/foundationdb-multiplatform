@@ -1,12 +1,11 @@
 package maryk.foundationdb
 
 import maryk.foundationdb.tuple.Tuple
-import maryk.foundationdb.tuple.TupleInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class TupleIntegerBoundsNativeTest {
+class TupleIntegerBoundsTest {
     @Test
     fun overwideJavaIntegersAreDecodedExactly() {
         assertEquals("9223372036854775808", Tuple.fromBytes(byteArrayOf(0x1c, 0x80.toByte()) + ByteArray(7)).getBigInteger(0).toString())

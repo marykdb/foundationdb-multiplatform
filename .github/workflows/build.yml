@@ -19,8 +19,10 @@ jobs:
             display-name: macOS Arm
             command: |
               ./gradlew --stacktrace --info checkKotlinAbi allMetadataJar generateMetadataFileForJvmPublication generatePomFileForJvmPublication macosArm64Test jvmTest
-              ./gradlew --stacktrace --info '-PfoundationDbNativeTestFilter=maryk.foundationdb.LegacyApiVersionNativeTest.*' macosArm64Test
-              ./gradlew --stacktrace --info '-PfoundationDbNativeTestFilter=maryk.foundationdb.LegacyVersionstampApiNativeTest.*' macosArm64Test
+              ./gradlew --stacktrace --info '-PfoundationDbJvmTestFilter=maryk.foundationdb.LegacyApiVersionTest.*' jvmTest
+              ./gradlew --stacktrace --info '-PfoundationDbNativeTestFilter=maryk.foundationdb.LegacyApiVersionTest.*' macosArm64Test
+              ./gradlew --stacktrace --info '-PfoundationDbJvmTestFilter=maryk.foundationdb.LegacyVersionstampApiTest.*' jvmTest
+              ./gradlew --stacktrace --info '-PfoundationDbNativeTestFilter=maryk.foundationdb.LegacyVersionstampApiTest.*' macosArm64Test
               python3 verification/check-external-consumer.py
             shell: bash
           - os: macos-26-intel
@@ -93,6 +95,6 @@ jobs:
           export FDB_CLUSTER_FILE="$PWD/foundationdb/fdb.cluster"
           export LD_LIBRARY_PATH="$PWD/foundationdb/bin/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           chmod +x build/linux-arm64-tests/test.kexe
-          build/linux-arm64-tests/test.kexe --ktest_logger=SIMPLE '--ktest_filter=*-maryk.foundationdb.LegacyApiVersionNativeTest.*:maryk.foundationdb.LegacyVersionstampApiNativeTest.*:maryk.foundationdb.MetricsBenchmarkNativeTest.*'
-          build/linux-arm64-tests/test.kexe --ktest_logger=SIMPLE '--ktest_filter=maryk.foundationdb.LegacyApiVersionNativeTest.*'
-          build/linux-arm64-tests/test.kexe --ktest_logger=SIMPLE '--ktest_filter=maryk.foundationdb.LegacyVersionstampApiNativeTest.*'
+          build/linux-arm64-tests/test.kexe --ktest_logger=SIMPLE '--ktest_filter=*-maryk.foundationdb.LegacyApiVersionTest.*:maryk.foundationdb.LegacyVersionstampApiTest.*:maryk.foundationdb.MetricsBenchmarkNativeTest.*'
+          build/linux-arm64-tests/test.kexe --ktest_logger=SIMPLE '--ktest_filter=maryk.foundationdb.LegacyApiVersionTest.*'
+          build/linux-arm64-tests/test.kexe --ktest_logger=SIMPLE '--ktest_filter=maryk.foundationdb.LegacyVersionstampApiTest.*'

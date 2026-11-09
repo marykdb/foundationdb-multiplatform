@@ -5,8 +5,8 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 
-/** Run alone with -PfoundationDbNativeTestFilter=maryk.foundationdb.LegacyApiVersionNativeTest.* */
-class LegacyApiVersionNativeTest {
+/** API selection is process-global; run alone using the JVM or Native test-filter property. */
+class LegacyApiVersionTest {
     @Test
     fun selectedOlderApiSurvivesNetworkStartup() = runBlocking {
         val fdb = FDB.selectAPIVersion(710)

@@ -9,8 +9,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/** API selection is process-global; run this class alone using foundationDbNativeTestFilter. */
-class LegacyVersionstampApiNativeTest {
+/** API selection is process-global; run alone using the JVM or Native test-filter property. */
+class LegacyVersionstampApiTest {
     @Test
     fun api510UsesTheLegacyVersionstampOffsetEncoding() = runBlocking<Unit> {
         val fdb = FDB.selectAPIVersion(510)

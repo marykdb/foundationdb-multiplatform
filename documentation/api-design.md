@@ -37,6 +37,10 @@ results. Collection helpers acquire their iterator eagerly and own its cleanup.
 If cleanup also fails, an existing read, consumer or cancellation failure remains primary.
 Only one consumer should advance a cursor.
 
+List-backed `closeableAsyncIterator` factories close exactly once when exhaustion is
+observed through `hasNext` or `onHasNext`, or when explicitly closed/cancelled. Closed
+list cursors report no remaining rows and `next` throws. Close after early termination.
+
 `TenantManagement.openTenantsIterator` owns a transaction and closes it on exhaustion
 or read failure. Close or cancel it after early termination. `listTenantsFlow` creates a
 fresh iterator and transaction per collector. Materialized `listTenants` can retry its
