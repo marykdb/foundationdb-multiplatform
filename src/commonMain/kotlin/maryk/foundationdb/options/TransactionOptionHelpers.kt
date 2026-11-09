@@ -52,6 +52,9 @@ sealed interface TransactionOption {
     object DurabilityDatacenter : TransactionOption { override fun applyTo(sink: TransactionOptionSink) = sink.setDurabilityDatacenter() }
     object DurabilityRisky : TransactionOption { override fun applyTo(sink: TransactionOptionSink) = sink.setDurabilityRisky() }
     data class DebugRetryLogging(val value: String) : TransactionOption { override fun applyTo(sink: TransactionOptionSink) = sink.setDebugRetryLogging(value) }
+    object ReadAheadDisable : TransactionOption { override fun applyTo(sink: TransactionOptionSink) = sink.setReadAheadDisable() }
+    object DurabilityDevNullIsWebScale : TransactionOption { override fun applyTo(sink: TransactionOptionSink) = sink.setDurabilityDevNullIsWebScale() }
+    data class TransactionLoggingEnable(val value: String) : TransactionOption { override fun applyTo(sink: TransactionOptionSink) = sink.setTransactionLoggingEnable(value) }
 }
 
 fun TransactionOptions.apply(option: TransactionOption) {
@@ -128,6 +131,9 @@ class TransactionOptionBuilder @PublishedApi internal constructor(
     fun durabilityDatacenter() = add(TransactionOption.DurabilityDatacenter)
     fun durabilityRisky() = add(TransactionOption.DurabilityRisky)
     fun debugRetryLogging(value: String) = add(TransactionOption.DebugRetryLogging(value))
+    fun readAheadDisable() = add(TransactionOption.ReadAheadDisable)
+    fun durabilityDevNullIsWebScale() = add(TransactionOption.DurabilityDevNullIsWebScale)
+    fun transactionLoggingEnable(value: String) = add(TransactionOption.TransactionLoggingEnable(value))
 }
 
 inline fun transactionOptions(block: TransactionOptionBuilder.() -> Unit): List<TransactionOption> {

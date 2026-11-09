@@ -2,6 +2,12 @@
 
 package maryk.foundationdb
 
+import foundationdb.c.FDB_TR_OPTION_TRANSACTION_LOGGING_ENABLE
+
+import foundationdb.c.FDB_TR_OPTION_DURABILITY_DEV_NULL_IS_WEB_SCALE
+
+import foundationdb.c.FDB_TR_OPTION_READ_AHEAD_DISABLE
+
 import foundationdb.c.FDBTransaction
 import foundationdb.c.FDB_TR_OPTION_ACCESS_SYSTEM_KEYS
 import foundationdb.c.FDB_TR_OPTION_AUTO_THROTTLE_TAG
@@ -61,29 +67,26 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.sizeOf
 import kotlinx.cinterop.value
 
-actual class TransactionOptions internal constructor(private val handle: NativeTransactionHandle) : TransactionOptionSink {
+actual class TransactionOptions internal constructor(private val handle: NativeTransactionHandle?, private val customConsumer: OptionConsumer? = null) : TransactionOptionSink {
+    actual constructor(consumer: OptionConsumer) : this(null, consumer)
+
     private fun set(option: UInt) {
-        handle.usePointer { pointer ->
+        customConsumer?.let { it.setOption(option.toInt(), null); return }
+        requireNotNull(handle).usePointer { pointer ->
             checkError(fdb_transaction_set_option(pointer, option, null, 0))
         }
     }
 
     private fun set(option: UInt, bytes: ByteArray) {
-        handle.usePointer { pointer ->
+        customConsumer?.let { it.setOption(option.toInt(), bytes); return }
+        requireNotNull(handle).usePointer { pointer ->
             bytes.withPointer { ptr, length ->
                 checkError(fdb_transaction_set_option(pointer, option, ptr, length))
             }
         }
     }
 
-    private fun set(option: UInt, value: Long) = memScoped {
-        val ref = alloc<LongVar>()
-        ref.value = value
-        val ptr = ref.ptr.reinterpret<UByteVar>()
-        handle.usePointer { pointer ->
-            checkError(fdb_transaction_set_option(pointer, option, ptr, sizeOf<LongVar>().toInt()))
-        }
-    }
+    private fun set(option: UInt, value: Long) = set(option, ByteArrayUtil.encodeInt(value))
 
     actual override fun setCausalWriteRisky() = set(FDB_TR_OPTION_CAUSAL_WRITE_RISKY)
     actual override fun setCausalReadRisky() = set(FDB_TR_OPTION_CAUSAL_READ_RISKY)
@@ -131,4 +134,14 @@ actual class TransactionOptions internal constructor(private val handle: NativeT
     actual override fun setDurabilityDatacenter() = set(FDB_TR_OPTION_DURABILITY_DATACENTER)
     actual override fun setDurabilityRisky() = set(FDB_TR_OPTION_DURABILITY_RISKY)
     actual override fun setDebugRetryLogging(value: String) = set(FDB_TR_OPTION_DEBUG_RETRY_LOGGING, value.encodeToByteArray())
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual override fun setReadAheadDisable() = set(FDB_TR_OPTION_READ_AHEAD_DISABLE)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual override fun setDurabilityDevNullIsWebScale() = set(FDB_TR_OPTION_DURABILITY_DEV_NULL_IS_WEB_SCALE)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual override fun setTransactionLoggingEnable(value: String) = set(FDB_TR_OPTION_TRANSACTION_LOGGING_ENABLE, value.encodeToByteArray())
+    actual fun getOptionConsumer(): OptionConsumer = OptionConsumer { code, value ->
+        if (value == null) set(code.toUInt()) else set(code.toUInt(), value)
+    }
+
 }

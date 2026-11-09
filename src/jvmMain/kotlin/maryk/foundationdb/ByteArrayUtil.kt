@@ -1,6 +1,6 @@
 package maryk.foundationdb
 
-internal actual object ByteArrayUtil {
+actual object ByteArrayUtil {
     private val HEX = charArrayOf('0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f')
 
     actual fun join(vararg parts: ByteArray): ByteArray =
@@ -44,27 +44,11 @@ internal actual object ByteArrayUtil {
         return true
     }
 
-    actual fun replace(src: ByteArray?, pattern: ByteArray?, replacement: ByteArray?): ByteArray? {
-        src ?: return null
-        return replace(src, 0, src.size, pattern, replacement)
-    }
+    actual fun replace(src: ByteArray?, pattern: ByteArray?, replacement: ByteArray?): ByteArray? =
+        byteArrayReplace(src, pattern, replacement)
 
-    actual fun replace(
-        src: ByteArray?,
-        offset: Int,
-        length: Int,
-        pattern: ByteArray?,
-        replacement: ByteArray?
-    ): ByteArray? {
-        src ?: return null
-        require(offset >= 0 && offset <= src.size) { "Invalid offset" }
-        require(length >= 0 && offset + length <= src.size) { "Invalid length" }
-        if (pattern == null || pattern.isEmpty()) {
-            return src.copyOfRange(offset, offset + length)
-        }
-        val replacementBytes = replacement ?: ByteArray(0)
-        return replaceInternal(src, offset, length, pattern, replacementBytes)
-    }
+    actual fun replace(src: ByteArray?, offset: Int, length: Int, pattern: ByteArray?, replacement: ByteArray?): ByteArray? =
+        byteArrayReplace(src, offset, length, pattern, replacement)
 
     actual fun printable(bytes: ByteArray?): String? {
         bytes ?: return null
@@ -87,54 +71,15 @@ internal actual object ByteArrayUtil {
 
     actual fun nullCount(bytes: ByteArray): Int =
         bytes.count { it == 0.toByte() }
-    private fun replaceInternal(
-        src: ByteArray,
-        offset: Int,
-        length: Int,
-        pattern: ByteArray,
-        replacement: ByteArray
-    ): ByteArray {
-        val patternFirst = pattern[0]
-        val end = offset + length
-        var lastPosition = offset
-        var current = offset
-        var newLength = 0
-        while (current < end) {
-            if (src[current] == patternFirst && regionEquals(src, current, pattern)) {
-                newLength += current - lastPosition + replacement.size
-                current += pattern.size
-                lastPosition = current
-            } else {
-                current++
-            }
-        }
-        newLength += current - lastPosition
-        if (newLength == 0) return ByteArray(0)
-        val dest = ByteArray(newLength)
-        var destOffset = 0
-        lastPosition = offset
-        current = offset
-        while (current < end) {
-            if (src[current] == patternFirst && regionEquals(src, current, pattern)) {
-                val chunk = current - lastPosition
-                if (chunk > 0) {
-                    src.copyInto(dest, destOffset, lastPosition, current)
-                    destOffset += chunk
-                }
-                if (replacement.isNotEmpty()) {
-                    replacement.copyInto(dest, destOffset)
-                    destOffset += replacement.size
-                }
-                current += pattern.size
-                lastPosition = current
-            } else {
-                current++
-            }
-        }
-        val chunk = current - lastPosition
-        if (chunk > 0) {
-            src.copyInto(dest, destOffset, lastPosition, current)
-        }
-        return dest
-    }
+    actual fun interludeJoin(interlude: ByteArray?, parts: Array<out ByteArray>): ByteArray = byteArrayInterludeJoin(interlude, parts)
+    actual fun split(src: ByteArray, delimiter: ByteArray): List<ByteArray> = byteArraySplit(src, delimiter)
+    actual fun split(src: ByteArray, offset: Int, length: Int, delimiter: ByteArray): List<ByteArray> = byteArraySplit(src, offset, length, delimiter)
+    actual fun compareUnsigned(left: ByteArray, right: ByteArray): Int = byteArrayCompareUnsigned(left, right)
+    actual fun comparator(): Comparator<ByteArray> = byteArrayComparator()
+    actual fun startsWith(src: ByteArray, prefix: ByteArray): Boolean = byteArrayStartsWith(src, prefix)
+    actual fun strinc(key: ByteArray): ByteArray = byteArrayStrinc(key)
+    actual fun keyAfter(key: ByteArray): ByteArray = byteArrayKeyAfter(key)
+    actual fun encodeInt(value: Long): ByteArray = byteArrayEncodeInt(value)
+    actual fun decodeInt(value: ByteArray): Long = byteArrayDecodeInt(value)
+
 }

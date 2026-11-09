@@ -5,24 +5,24 @@ import maryk.foundationdb.FdbFuture
 import maryk.foundationdb.completedFdbFuture
 import maryk.foundationdb.fdbFutureFromSuspend
 
-private class ListAsyncIterator<T>(items: List<T>) : AsyncIterator<T>() {
+private class PopulatedListIterator<T>(items: List<T>) : ListAsyncIterator<T>() {
     init {
         initialise(items)
     }
 }
 
-actual class AsyncIterable<T> internal constructor(
+internal class NativeAsyncIterable<T>(
     private val iteratorFactory: () -> AsyncIterator<T>,
     private val listFutureFactory: () -> FdbFuture<List<T>>
-) {
-    actual fun iterator(): AsyncIterator<T> = iteratorFactory()
-    actual fun asList(): FdbFuture<List<T>> = listFutureFactory()
+) : AsyncIterable<T> {
+    override fun iterator(): AsyncIterator<T> = iteratorFactory()
+    override fun asList(): FdbFuture<List<T>> = listFutureFactory()
 }
 
 internal fun <T> List<T>.toAsyncIterable(): AsyncIterable<T> = asyncIterableOfList(this)
 
 internal fun <T> asyncIterableOfList(items: List<T>): AsyncIterable<T> = AsyncIterable(
-    iteratorFactory = { ListAsyncIterator(items) },
+    iteratorFactory = { PopulatedListIterator(items) },
     listFutureFactory = { completedFdbFuture(items) }
 )
 
@@ -45,3 +45,5 @@ internal fun <T> AsyncIterator<T>.collectAllAsync(): FdbFuture<List<T>> = fdbFut
 internal fun <T> runBlockingNext(iterator: AsyncIterator<T>): T = runCatching {
     runBlocking { iterator.next() }
 }.getOrElse { throw it }
+
+internal fun <T> AsyncIterable(iteratorFactory: () -> AsyncIterator<T>, listFutureFactory: () -> FdbFuture<List<T>>): AsyncIterable<T> = NativeAsyncIterable(iteratorFactory, listFutureFactory)

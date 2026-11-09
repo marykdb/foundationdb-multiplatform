@@ -155,7 +155,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
             }
         }
         commonTest {
@@ -165,7 +165,7 @@ kotlin {
         }
         jvmMain {
             dependencies {
-                implementation("org.foundationdb:fdb-java:$foundationDbJavaVersion")
+                api("org.foundationdb:fdb-java:$foundationDbJavaVersion")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
             }
         }
@@ -205,6 +205,10 @@ tasks.withType<KotlinNativeTest>().configureEach {
     dependsOn(startFoundationDBForTests)
     finalizedBy(stopFoundationDBForTests)
     args = args + "--ktest_logger=SIMPLE"
+    // API selection is process-wide: the older-version startup regression runs in isolation.
+    val filter = providers.gradleProperty("foundationDbNativeTestFilter").orNull
+        ?: "*-maryk.foundationdb.LegacyApiVersionNativeTest.*:maryk.foundationdb.LegacyVersionstampApiNativeTest.*:maryk.foundationdb.MetricsBenchmarkNativeTest.*"
+    args = args + "--ktest_filter=$filter"
     environment("FDB_CLUSTER_FILE", foundationDbDir.resolve("fdb.cluster").absolutePath)
     environment("DYLD_LIBRARY_PATH", foundationDbDir.resolve("bin/lib").absolutePath)
     environment("LD_LIBRARY_PATH", foundationDbDir.resolve("bin/lib").absolutePath)

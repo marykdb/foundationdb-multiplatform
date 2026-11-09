@@ -35,8 +35,11 @@ class CloseableAsyncIteratorJvmTest {
         assertEquals("X", iterator.next())
         assertEquals("Y", iterator.next())
         iterator.cancel()
-        assertEquals(1, delegate.cancelCount)
+        // Closeable cancellation owns close, matching the SDK interface default and Native.
+        assertEquals(0, delegate.cancelCount)
+        assertEquals(1, delegate.closeCount)
 
+        iterator.cancel()
         iterator.close()
         assertEquals(1, delegate.closeCount)
     }

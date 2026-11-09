@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalForeignApi::class, ExperimentalAtomicApi::class)
+@file:OptIn(ExperimentalForeignApi::class, ExperimentalAtomicApi::class, ExperimentalCoroutinesApi::class)
 
 package maryk.foundationdb
 
@@ -15,9 +15,13 @@ import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.staticCFunction
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -82,9 +86,18 @@ internal class NativeFuture<T>(
         }
     }
 
-    override suspend fun await(): T = deferred.await()
+    override suspend fun awaitObserved(): T = deferred.await()
+
+    override suspend fun await(): T = try {
+        deferred.await()
+    } catch (error: CancellationException) {
+        cancel()
+        throw error
+    }
 
     override fun cancel() {
+        // Establish observer cancellation before the native callback can publish an error.
+        deferred.cancel()
         if (tryEnterCancel()) {
             try {
                 if (destroyed.load() == UNSET) {
@@ -94,11 +107,10 @@ internal class NativeFuture<T>(
                 exitCancel()
             }
         }
-        deferred.cancel()
     }
 
     override val isDone: Boolean get() = deferred.isCompleted
-    override val isCancelled: Boolean get() = deferred.isCancelled
+    override val isCancelled: Boolean get() = deferred.wasCancelled()
 
     companion object {
         private val callback = staticCFunction { future: CPointer<FDBFuture>?, userData: COpaquePointer? ->
@@ -149,7 +161,12 @@ internal class NativeFuture<T>(
     }
 }
 
-internal actual fun <T> fdbFutureFromSuspend(block: suspend () -> T): FdbFuture<T> {
+internal actual fun <T> fdbFutureFromSuspend(block: suspend () -> T): FdbFuture<T> = coroutineFuture(block, null)
+
+internal actual fun <T> fdbFutureFromSuspend(onCompletion: (Throwable?) -> Unit, block: suspend () -> T): FdbFuture<T> =
+    coroutineFuture(block, onCompletion)
+
+private fun <T> coroutineFuture(block: suspend () -> T, onCompletion: ((Throwable?) -> Unit)?): FdbFuture<T> {
     val deferred = CompletableDeferred<T>()
     val job = withFutureScopeLock {
         futureScope.launch {
@@ -160,24 +177,38 @@ internal actual fun <T> fdbFutureFromSuspend(block: suspend () -> T): FdbFuture<
             }
         }
     }
-    deferred.invokeOnCompletion {
-        if (deferred.isCancelled) job.cancel()
+    // A cancelled queued launch never enters the body's try/catch. Complete its promise
+    // from the Job as well, otherwise scope shutdown can leave a permanently pending future.
+    job.invokeOnCompletion { cause -> if (cause != null) deferred.completeExceptionally(cause) }
+    deferred.invokeOnCompletion { cause ->
+        if (cause is CancellationException) job.cancel()
+        onCompletion?.invoke(cause)
     }
     return object : FdbFuture<T> {
-        override suspend fun await(): T = deferred.await()
+        override suspend fun awaitObserved(): T = deferred.await()
+
+        override suspend fun await(): T = try {
+            deferred.await()
+        } catch (error: CancellationException) {
+            cancel()
+            throw error
+        }
         override fun cancel() { deferred.cancel() }
         override val isDone: Boolean get() = deferred.isCompleted
-        override val isCancelled: Boolean get() = deferred.isCancelled
+        override val isCancelled: Boolean get() = deferred.wasCancelled()
     }
 }
 
 internal fun <T> FdbFuture<T>.awaitBlocking(): T = runBlocking { await() }
 
-internal fun resetNativeFutureScope() {
+internal fun resetNativeFutureScope() = resetNativeFutureScope(Dispatchers.Default)
+
+/** Allows deterministic queue/shutdown tests without relying on platform scheduler saturation. */
+internal fun resetNativeFutureScope(dispatcher: CoroutineDispatcher) {
     withFutureScopeLock {
         supervisorJob.cancel()
         supervisorJob = SupervisorJob()
-        futureScope = CoroutineScope(supervisorJob + Dispatchers.Default)
+        futureScope = CoroutineScope(supervisorJob + dispatcher)
     }
 }
 
@@ -191,3 +222,8 @@ private inline fun <T> withFutureScopeLock(block: () -> T): T {
         futureScopeLock.store(UNSET)
     }
 }
+
+// Job.isCancelled also reports ordinary exceptional completion. FdbFuture follows
+// CompletableFuture: an ordinary failure completes the future without cancelling it.
+private fun Deferred<*>.wasCancelled(): Boolean =
+    isCompleted && getCompletionExceptionOrNull() is CancellationException

@@ -10,5 +10,7 @@ expect enum class StreamingMode {
     SMALL,
     MEDIUM,
     LARGE,
-    SERIAL
+    SERIAL;
+
+    fun code(): Int
 }

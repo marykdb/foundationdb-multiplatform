@@ -23,20 +23,21 @@ internal suspend fun <T> executeWithRetry(
     needsCommit: Boolean,
     block: suspend (Transaction) -> T
 ): T {
-    while (true) {
-        val txn = createTxn()
-        try {
-            val result = block(txn)
-            if (needsCommit) {
-                txn.commit().await()
+    // onError resets the same native transaction while retaining its retry count,
+    // timeout and backoff state. Recreating it here would reset those limits.
+    val txn = createTxn()
+    try {
+        while (true) {
+            try {
+                val result = block(txn)
+                if (needsCommit) txn.commit().await()
+                return result
+            } catch (error: Throwable) {
+                if (!txn.handleOnError(error)) throw error
             }
-            return result
-        } catch (error: Throwable) {
-            val handled = txn.handleOnError(error)
-            if (!handled) throw error
-        } finally {
-            txn.close()
         }
+    } finally {
+        txn.close()
     }
 }
 

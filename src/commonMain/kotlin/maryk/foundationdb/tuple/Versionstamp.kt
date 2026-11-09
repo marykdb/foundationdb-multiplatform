@@ -8,9 +8,14 @@ expect class Versionstamp : Comparable<Versionstamp> {
     val bytes: ByteArray
     val userVersion: Int
 
+    fun getTransactionVersion(): ByteArray
+
     fun transactionVersion(): ByteArray
 
     override fun compareTo(other: Versionstamp): Int
+
+    override fun equals(other: Any?): Boolean
+    override fun hashCode(): Int
 
     companion object {
         val LENGTH: Int

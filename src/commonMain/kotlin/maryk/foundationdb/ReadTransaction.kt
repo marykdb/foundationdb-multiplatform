@@ -5,7 +5,15 @@ import maryk.foundationdb.async.AsyncIterable
 /**
  * Read-only view of a FoundationDB transaction.
  */
-expect open class ReadTransaction {
+expect open class ReadTransaction : ReadTransactionContext {
+    open override fun <T> read(block: (ReadTransaction) -> T): T
+    open override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T>
+    @ExperimentalBlobGranules
+    fun getBlobGranuleRanges(range: Range, rowLimit: Int): FdbFuture<List<Range>>
+    fun isSnapshot(): Boolean
+    fun getKey(selector: KeySelector): FdbFuture<ByteArray>
+    open fun getEstimatedRangeSizeBytes(range: Range): FdbFuture<Long>
+    open fun getRangeSplitPoints(range: Range, chunkSize: Long): FdbFuture<List<ByteArray>>
     fun get(key: ByteArray): FdbFuture<ByteArray?>
     fun getRange(begin: ByteArray, end: ByteArray): AsyncIterable<KeyValue>
     fun getRange(begin: ByteArray, end: ByteArray, limit: Int): AsyncIterable<KeyValue>
@@ -36,6 +44,13 @@ expect open class ReadTransaction {
     fun snapshot(): ReadTransaction
     open fun options(): TransactionOptions
 
+
+    fun getRange(begin: KeySelector, end: KeySelector, limit: Int): AsyncIterable<KeyValue>
+    fun getMappedRange(begin: KeySelector, end: KeySelector, mapper: ByteArray, limit: Int): AsyncIterable<MappedKeyValue>
+    fun getEstimatedRangeSizeBytes(begin: ByteArray, end: ByteArray): FdbFuture<Long>
+    fun getRangeSplitPoints(begin: ByteArray, end: ByteArray, chunkSize: Long): FdbFuture<List<ByteArray>>
+    @ExperimentalBlobGranules
+    fun getBlobGranuleRanges(begin: ByteArray, end: ByteArray, rowLimit: Int): FdbFuture<List<Range>>
     companion object {
         val ROW_LIMIT_UNLIMITED: Int
     }

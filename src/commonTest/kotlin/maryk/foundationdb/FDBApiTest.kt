@@ -2,6 +2,7 @@ package maryk.foundationdb
 
 import kotlin.test.Test
 import kotlin.test.assertNotNull
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class FDBApiTest {
@@ -9,6 +10,7 @@ class FDBApiTest {
     fun openDatabaseAndConfigureWarnings() {
         ensureApiVersionSelected()
         val fdb = FDB.instance()
+        assertEquals(ApiVersion.LATEST, fdb.getAPIVersion())
         val defaultDb = fdb.open()
         defaultDb.close()
 

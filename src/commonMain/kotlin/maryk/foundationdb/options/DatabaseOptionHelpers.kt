@@ -77,6 +77,7 @@ sealed interface DatabaseOption {
     data class TestCausalReadRisky(val value: Long) : DatabaseOption {
         override fun applyTo(sink: DatabaseOptionSink) = sink.setTestCausalReadRisky(value)
     }
+    object TransactionIncludePortInAddress : DatabaseOption { override fun applyTo(sink: DatabaseOptionSink) = sink.setTransactionIncludePortInAddress() }
 }
 
 fun DatabaseOptions.apply(option: DatabaseOption) {
@@ -125,6 +126,7 @@ class DatabaseOptionBuilder @PublishedApi internal constructor(
     fun transactionReportConflictingKeys() = add(DatabaseOption.TransactionReportConflictingKeys)
     fun useConfigDatabase() = add(DatabaseOption.UseConfigDatabase)
     fun testCausalReadRisky(value: Long) = add(DatabaseOption.TestCausalReadRisky(value))
+    fun transactionIncludePortInAddress() = add(DatabaseOption.TransactionIncludePortInAddress)
 }
 
 inline fun databaseOptions(block: DatabaseOptionBuilder.() -> Unit): List<DatabaseOption> {

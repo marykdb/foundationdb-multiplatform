@@ -2,6 +2,9 @@
 
 package maryk.foundationdb
 
+import maryk.foundationdb.async.AsyncUtil
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import maryk.foundationdb.async.AsyncIterator
 import maryk.foundationdb.async.CloseableAsyncIterator
 
@@ -18,7 +21,6 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.value
-import maryk.foundationdb.ReadTransaction.Companion.ROW_LIMIT_UNLIMITED
 
 private val KEY_SERVERS_PREFIX: ByteArray =
     byteArrayOf(0xFF.toByte()) + "/keyServers/".encodeToByteArray()
@@ -27,22 +29,13 @@ internal actual fun getBoundaryKeysInternal(
     database: Database,
     begin: ByteArray,
     end: ByteArray
-): FdbFuture<List<ByteArray>> = fdbFutureFromSuspend {
-    val transaction = database.createTransaction()
-    try {
-        transaction.fetchBoundaryKeys(begin, end)
-    } finally {
-        transaction.close()
-    }
-}
+): FdbFuture<List<ByteArray>> = AsyncUtil.collectRemaining(openBoundaryKeysIteratorInternal(database, begin, end))
 
 internal actual fun getBoundaryKeysInternal(
     transaction: Transaction,
     begin: ByteArray,
     end: ByteArray
-): FdbFuture<List<ByteArray>> = fdbFutureFromSuspend {
-    transaction.fetchBoundaryKeys(begin, end)
-}
+): FdbFuture<List<ByteArray>> = AsyncUtil.collectRemaining(openBoundaryKeysIteratorInternal(transaction, begin, end))
 
 internal actual fun getAddressesForKeyInternal(
     transaction: Transaction,
@@ -70,25 +63,6 @@ internal actual fun getAddressesForKeyInternal(
     }
 }
 
-private suspend fun Transaction.fetchBoundaryKeys(begin: ByteArray, end: ByteArray): List<ByteArray> {
-    options().setReadSystemKeys()
-    options().setLockAware()
-
-    val beginSelector = KeySelector.firstGreaterOrEqual(keyServersKey(begin))
-    val endSelector = KeySelector.firstGreaterOrEqual(keyServersKey(end))
-
-    val range = collectRangeInternal(
-        beginSelector,
-        endSelector,
-        ROW_LIMIT_UNLIMITED,
-        reverse = false,
-        streamingMode = StreamingMode.WANT_ALL
-    ).await()
-
-    val prefixLength = KEY_SERVERS_PREFIX.size
-    return range.values.map { kv -> kv.key.copyOfRange(prefixLength, kv.key.size) }
-}
-
 private fun keyServersKey(key: ByteArray): ByteArray {
     val result = ByteArray(KEY_SERVERS_PREFIX.size + key.size)
     KEY_SERVERS_PREFIX.copyInto(result, 0)
@@ -110,9 +84,7 @@ internal actual fun openBoundaryKeysIteratorInternal(
 ): CloseableAsyncIterator<ByteArray> {
     val transaction = database.createTransaction()
     return try {
-        boundaryKeyIterator(transaction, begin, end) {
-            transaction.close()
-        }
+        boundaryKeyIterator(transaction, begin, end, closeAction = transaction::close)
     } catch (t: Throwable) {
         transaction.close()
         throw t
@@ -123,44 +95,58 @@ internal actual fun openBoundaryKeysIteratorInternal(
     transaction: Transaction,
     begin: ByteArray,
     end: ByteArray
-): CloseableAsyncIterator<ByteArray> =
-    boundaryKeyIterator(transaction, begin, end) {}
+): CloseableAsyncIterator<ByteArray> {
+    // Like Java, locality iteration owns a separate transaction. It neither changes
+    // the caller's options nor depends on the caller remaining open.
+    val owned = transaction.getDatabase().createTransaction()
+    return try {
+        val readVersion = transaction.getReadVersion()
+        if (readVersion.isDone && !readVersion.isCancelled) {
+            runCatching { readVersion.awaitBlocking() }.getOrNull()?.let(owned::setReadVersion)
+        }
+        boundaryKeyIterator(owned, begin, end, owned::close)
+    } catch (error: Throwable) {
+        owned.close()
+        throw error
+    }
+}
 
-private fun boundaryKeyIterator(
+internal fun boundaryKeyIterator(
     transaction: Transaction,
     begin: ByteArray,
     end: ByteArray,
-    closeAction: () -> Unit
+    closeAction: () -> Unit,
+    fetchPage: ((KeySelector, KeySelector, Int) -> FdbFuture<RangePage>)? = null
 ): CloseableAsyncIterator<ByteArray> {
-    transaction.options().setReadSystemKeys()
-    transaction.options().setLockAware()
-
-    val beginSelector = KeySelector.firstGreaterOrEqual(keyServersKey(begin))
-    val endSelector = KeySelector.firstGreaterOrEqual(keyServersKey(end))
-    val iterable = transaction.getRange(
-        beginSelector,
-        endSelector,
-        ReadTransaction.ROW_LIMIT_UNLIMITED,
-        reverse = false,
-        streamingMode = StreamingMode.WANT_ALL
-    )
-    val prefixLength = KEY_SERVERS_PREFIX.size
-    val kvIterator = iterable.iterator()
-
-    val delegate = object : AsyncIterator<ByteArray>() {
-        override fun hasNext(): Boolean = kvIterator.hasNext()
-
-        override suspend fun next(): ByteArray {
-            val kv = kvIterator.next()
-            return kv.key.copyOfRange(prefixLength, kv.key.size)
-        }
-
-        override fun onHasNext() = kvIterator.onHasNext()
-
-        override fun cancel() {
-            kvIterator.cancel()
+    // Reuse the range engine's locked state, coalescing and cancellation rather
+    // than introduce another mutable cursor shared with cancellation callbacks.
+    val cursor = StreamingRangeIterator<KeyValue>(
+        KeySelector.firstGreaterOrEqual(keyServersKey(begin)),
+        KeySelector.firstGreaterOrEqual(keyServersKey(end)), 0, false
+    ) { currentBegin, currentEnd, _, iteration ->
+        fdbFutureFromSuspend {
+            while (true) {
+                currentCoroutineContext().ensureActive()
+                // onError resets options; restore them for every retry.
+                transaction.options().setReadSystemKeys()
+                transaction.options().setLockAware()
+                try {
+                    return@fdbFutureFromSuspend if (fetchPage != null) fetchPage(currentBegin, currentEnd, iteration).await()
+                    else transaction.fetchRange(currentBegin, currentEnd, 0, false, StreamingMode.WANT_ALL, iteration).await()
+                } catch (error: FDBException) { transaction.onError(error).await() }
+            }
+            @Suppress("UNREACHABLE_CODE")
+            error("unreachable")
         }
     }
-
+    val delegate = object : AsyncIterator<ByteArray> {
+        override fun hasNext() = cursor.hasNext()
+        override fun onHasNext() = cursor.onHasNext()
+        override suspend fun next(): ByteArray {
+            val row = cursor.next()
+            return row.key.copyOfRange(KEY_SERVERS_PREFIX.size, row.key.size)
+        }
+        override fun cancel() = cursor.cancel()
+    }
     return CloseableAsyncIterator(delegate, closeAction)
 }

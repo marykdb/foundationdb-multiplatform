@@ -3,7 +3,7 @@ package maryk.foundationdb
 /**
  * Tunable settings applied to a single transaction.
  *
- * The surface below mirrors the most commonly used FoundationDB transaction options.
+ * The surface mirrors the FoundationDB 7.3.81 Java transaction option setters, including legacy options.
  */
 interface TransactionOptionSink {
     fun setCausalWriteRisky()
@@ -52,9 +52,17 @@ interface TransactionOptionSink {
     fun setDurabilityDatacenter()
     fun setDurabilityRisky()
     fun setDebugRetryLogging(value: String)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    fun setReadAheadDisable() { throw UnsupportedOperationException("setReadAheadDisable is not implemented by this option sink") }
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    fun setDurabilityDevNullIsWebScale() { throw UnsupportedOperationException("setDurabilityDevNullIsWebScale is not implemented by this option sink") }
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    fun setTransactionLoggingEnable(value: String) { throw UnsupportedOperationException("setTransactionLoggingEnable is not implemented by this option sink") }
 }
 
 expect class TransactionOptions : TransactionOptionSink {
+    constructor(consumer: OptionConsumer)
+    fun getOptionConsumer(): OptionConsumer
     override fun setCausalWriteRisky()
     override fun setCausalReadRisky()
     override fun setIncludePortInAddress()
@@ -101,4 +109,10 @@ expect class TransactionOptions : TransactionOptionSink {
     override fun setDurabilityDatacenter()
     override fun setDurabilityRisky()
     override fun setDebugRetryLogging(value: String)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    override fun setReadAheadDisable()
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    override fun setDurabilityDevNullIsWebScale()
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    override fun setTransactionLoggingEnable(value: String)
 }

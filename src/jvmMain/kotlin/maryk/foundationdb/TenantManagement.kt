@@ -1,7 +1,6 @@
 package maryk.foundationdb
 
 import maryk.foundationdb.tuple.Tuple
-import java.util.concurrent.CompletableFuture
 
 @Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
 actual object TenantManagement {
@@ -15,8 +14,7 @@ actual object TenantManagement {
 
     actual fun createTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> {
         return com.apple.foundationdb.TenantManagement.createTenant(database.delegate, tenantName)
-            .thenApply { }
-            .toFdbFuture()
+            .mapToFdbFuture { }
     }
 
     actual fun createTenant(database: Database, tenantName: Tuple): FdbFuture<Unit> =
@@ -32,32 +30,20 @@ actual object TenantManagement {
 
     actual fun deleteTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> {
         return com.apple.foundationdb.TenantManagement.deleteTenant(database.delegate, tenantName)
-            .thenApply { }
-            .toFdbFuture()
+            .mapToFdbFuture { }
     }
 
     actual fun deleteTenant(database: Database, tenantName: Tuple): FdbFuture<Unit> =
         deleteTenant(database, tenantName.pack())
 
-    actual fun listTenants(database: Database, begin: ByteArray, end: ByteArray, limit: Int): FdbFuture<List<KeyValue>> {
-        val tenantIterator = com.apple.foundationdb.TenantManagement.listTenants(database.delegate, begin, end, limit)
-        val result = ArrayList<com.apple.foundationdb.KeyValue>()
+    actual fun openTenantsIterator(database: Database, begin: ByteArray, end: ByteArray, limit: Int) =
+        openTenantsIteratorInternal(database, begin, end, limit)
 
-        fun fetch(): CompletableFuture<List<com.apple.foundationdb.KeyValue>> {
-            return tenantIterator.onHasNext().thenCompose { hasNext ->
-                if (!hasNext) {
-                    CompletableFuture.completedFuture(result)
-                } else {
-                    result.add(tenantIterator.next())
-                    fetch()
-                }
-            }
-        }
+    actual fun openTenantsIterator(database: Database, begin: Tuple, end: Tuple, limit: Int) =
+        openTenantsIterator(database, begin.pack(), end.pack(), limit)
 
-        val future = fetch()
-        future.whenComplete { _, _ -> tenantIterator.close() }
-        return future.thenApply { list -> list.map { KeyValue.fromDelegate(it) } }.toFdbFuture()
-    }
+    actual fun listTenants(database: Database, begin: ByteArray, end: ByteArray, limit: Int): FdbFuture<List<KeyValue>> =
+        listTenantsInternal(database, begin, end, limit)
 
     actual fun listTenants(database: Database, begin: Tuple, end: Tuple, limit: Int): FdbFuture<List<KeyValue>> =
         listTenants(database, begin.pack(), end.pack(), limit)

@@ -1,8 +1,12 @@
 package maryk.foundationdb
 
+import com.apple.foundationdb.TransactionOptions as JavaTransactionOptions
+
 actual class TransactionOptions internal constructor(
     internal val delegate: com.apple.foundationdb.TransactionOptions
 ) : TransactionOptionSink {
+    actual constructor(consumer: OptionConsumer) : this(JavaTransactionOptions { code, value -> consumer.setOption(code, value) })
+
     actual override fun setCausalWriteRisky() = delegate.setCausalWriteRisky()
     actual override fun setCausalReadRisky() = delegate.setCausalReadRisky()
     actual override fun setIncludePortInAddress() = delegate.setIncludePortInAddress()
@@ -49,4 +53,12 @@ actual class TransactionOptions internal constructor(
     actual override fun setDurabilityDatacenter() = delegate.setDurabilityDatacenter()
     actual override fun setDurabilityRisky() = delegate.setDurabilityRisky()
     actual override fun setDebugRetryLogging(value: String) = delegate.setDebugRetryLogging(value)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual override fun setReadAheadDisable() = delegate.setReadAheadDisable()
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual override fun setDurabilityDevNullIsWebScale() = delegate.setDurabilityDevNullIsWebScale()
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual override fun setTransactionLoggingEnable(value: String) = delegate.setTransactionLoggingEnable(value)
+    actual fun getOptionConsumer(): OptionConsumer = OptionConsumer { code, value -> delegate.optionConsumer.setOption(code, value) }
+
 }

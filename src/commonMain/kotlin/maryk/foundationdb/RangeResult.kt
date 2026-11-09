@@ -19,7 +19,10 @@ fun ReadTransaction.collectRange(
     limit: Int = 0,
     reverse: Boolean = false,
     streamingMode: StreamingMode = StreamingMode.ITERATOR
-): FdbFuture<RangeResult> = collectRangeInternal(begin, end, limit, reverse, streamingMode)
+): FdbFuture<RangeResult> {
+    checkedRangeLimit(limit)
+    return collectRangeInternal(begin, end, limit, reverse, streamingMode)
+}
 
 fun ReadTransaction.collectRange(
     range: Range,
@@ -34,7 +37,10 @@ fun ReadTransaction.collectRange(
     limit: Int = 0,
     reverse: Boolean = false,
     streamingMode: StreamingMode = StreamingMode.ITERATOR
-): FdbFuture<RangeResult> = collectRangeInternal(begin, end, limit, reverse, streamingMode)
+): FdbFuture<RangeResult> {
+    checkedRangeLimit(limit)
+    return collectRangeInternal(begin, end, limit, reverse, streamingMode)
+}
 
 internal expect fun ReadTransaction.collectRangeInternal(
     begin: ByteArray,
@@ -51,3 +57,8 @@ internal expect fun ReadTransaction.collectRangeInternal(
     reverse: Boolean,
     streamingMode: StreamingMode
 ): FdbFuture<RangeResult>
+
+internal fun checkedRangeLimit(limit: Int): Int {
+    require(limit >= 0) { "Range limit must be nonnegative" }
+    return limit
+}

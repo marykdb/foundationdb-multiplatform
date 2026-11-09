@@ -1,18 +1,22 @@
 package maryk.foundationdb.async
 
+import com.apple.foundationdb.async.AsyncIterable as SdkAsyncIterable
+
 import java.util.concurrent.CompletableFuture
 import maryk.foundationdb.FdbFuture
+import maryk.foundationdb.mapToFdbFuture
 import maryk.foundationdb.toFdbFuture
 
-actual class AsyncIterable<T> internal constructor(
-    internal val delegate: com.apple.foundationdb.async.AsyncIterable<*>,
+internal class JavaAsyncIterable<T>(
+    internal val delegate: SdkAsyncIterable<*>,
     internal val mapper: (Any?) -> T
-) {
-    actual fun iterator(): AsyncIterator<T> =
+) : AsyncIterable<T> {
+    override fun iterator(): AsyncIterator<T> =
         AsyncIterator(delegate.iterator(), mapper)
 
-    actual fun asList(): FdbFuture<List<T>> =
+    override fun asList(): FdbFuture<List<T>> =
         (delegate.asList() as CompletableFuture<List<*>>)
-            .thenApply { list -> list.map(mapper) }
-            .toFdbFuture()
+            .mapToFdbFuture { list -> list.map(mapper) }
 }
+
+internal fun <T> AsyncIterable(delegate: SdkAsyncIterable<*>, mapper: (Any?) -> T): AsyncIterable<T> = JavaAsyncIterable(delegate, mapper)

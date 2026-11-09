@@ -1,13 +1,8 @@
 package maryk.foundationdb
 
 import maryk.foundationdb.tuple.Tuple
+import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-
-// Special key prefix for tenant management (see FDB special key docs)
-private val TENANT_MANAGEMENT_PREFIX = ByteArrayUtil.join(
-    byteArrayOf(0xFF.toByte(), 0xFF.toByte()),
-    "/management/tenant/map/".encodeToByteArray()
-)
 
 @OptIn(ExperimentalAtomicApi::class)
 @Deprecated("Tenants were removed in FoundationDB 8.x; this API will be removed in a future release.")
@@ -32,12 +27,7 @@ actual object TenantManagement {
         createTenant(transaction, tenantName.pack())
 
     actual fun createTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> =
-        database.runAsync { tr ->
-            tr.enableTenantOptions()
-            fdbFutureFromSuspend {
-                tr.set(managementKey(tenantName), tenantJsonValue(tenantName))
-            }
-        }
+        changeTenant(database, tenantName, create = true)
 
     actual fun createTenant(database: Database, tenantName: Tuple): FdbFuture<Unit> =
         createTenant(database, tenantName.pack())
@@ -51,40 +41,41 @@ actual object TenantManagement {
         deleteTenant(transaction, tenantName.pack())
 
     actual fun deleteTenant(database: Database, tenantName: ByteArray): FdbFuture<Unit> =
-        database.runAsync { tr ->
-            tr.enableTenantOptions()
-            fdbFutureFromSuspend {
-                tr.clear(managementKey(tenantName))
-            }
-        }
+        changeTenant(database, tenantName, create = false)
 
     actual fun deleteTenant(database: Database, tenantName: Tuple): FdbFuture<Unit> =
         deleteTenant(database, tenantName.pack())
 
+    actual fun openTenantsIterator(database: Database, begin: ByteArray, end: ByteArray, limit: Int) =
+        openTenantsIteratorInternal(database, begin, end, limit)
+
+    actual fun openTenantsIterator(database: Database, begin: Tuple, end: Tuple, limit: Int) =
+        openTenantsIterator(database, begin.pack(), end.pack(), limit)
+
     actual fun listTenants(database: Database, begin: ByteArray, end: ByteArray, limit: Int): FdbFuture<List<KeyValue>> =
-        database.runAsync { tr ->
-            tr.options().setRawAccess()
-            tr.options().setLockAware()
-            tr.options().setSpecialKeySpaceRelaxed()
-            fdbFutureFromSuspend {
-                val beginKey = managementKey(begin)
-                val endKey = managementKey(end)
-                val slice = tr.collectRange(
-                    beginKey,
-                    endKey,
-                    limit,
-                    reverse = false,
-                    streamingMode = StreamingMode.WANT_ALL
-                ).await()
-                slice.values.map { kv ->
-                    val name = kv.key.copyOfRange(TENANT_MANAGEMENT_PREFIX.size, kv.key.size)
-                    KeyValue(name, kv.value)
-                }
-            }
-        }
+        listTenantsInternal(database, begin, end, limit)
 
     actual fun listTenants(database: Database, begin: Tuple, end: Tuple, limit: Int): FdbFuture<List<KeyValue>> =
         listTenants(database, begin.pack(), end.pack(), limit)
+
+    /** Check the initial precondition once, preserving idempotent commit-unknown replay. */
+    internal fun changeTenant(context: TransactionContext, tenantName: ByteArray, create: Boolean): FdbFuture<Unit> {
+        val key = managementKey(tenantName)
+        val value = if (create) tenantJsonValue(tenantName) else byteArrayOf()
+        val checked = AtomicInt(0)
+        return context.runAsync { transaction ->
+            transaction.enableTenantOptions()
+            fdbFutureFromSuspend {
+                if (checked.load() == 0) {
+                    val exists = transaction.get(key).await() != null
+                    checked.store(1)
+                    if (create && exists) throw FDBException("A tenant with the given name already exists", 2132)
+                    if (!create && !exists) throw FDBException("Tenant does not exist", 2131)
+                }
+                if (create) transaction.set(key, value) else transaction.clear(key)
+            }
+        }
+    }
 
     private fun tenantJsonValue(@Suppress("UNUSED_PARAMETER") name: ByteArray): ByteArray {
         // The name is encoded in the special-key path itself; keep payload encoding independent

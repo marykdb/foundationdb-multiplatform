@@ -2,7 +2,6 @@
 
 package maryk.foundationdb
 
-import foundationdb.c.fdb_get_max_api_version
 import foundationdb.c.fdb_run_network
 import foundationdb.c.fdb_select_api_version_impl
 import foundationdb.c.fdb_setup_network
@@ -22,9 +21,9 @@ internal object NativeEnvironment {
     private var networkWorker: Worker? = null
     private var networkStopped = false
 
-    fun ensureNetwork(version: Int = DEFAULT_API_VERSION) {
+    fun ensureNetwork() {
         withStateLock {
-            ensureApiVersionLocked(version)
+            ensureApiVersionLocked(apiVersion ?: DEFAULT_API_VERSION)
             if (networkWorker != null) return
             check(!networkStopped) { "FoundationDB network has been stopped and cannot be restarted." }
             checkError(fdb_setup_network())
@@ -47,6 +46,8 @@ internal object NativeEnvironment {
         }
     }
 
+    fun selectedApiVersion(): Int = withStateLock { checkNotNull(apiVersion) { "API version is not selected" } }
+
     fun isApiSelected(): Boolean = withStateLock { apiVersion != null }
 
     fun setNetworkOption(block: () -> Unit) {
@@ -68,15 +69,13 @@ internal object NativeEnvironment {
     }
 
     private fun ensureApiVersionLocked(requested: Int) {
-        require(requested > 0) { "API version must be positive" }
-        val maxSupported = fdb_get_max_api_version()
-        val effective = minOf(requested, maxSupported)
+        require(requested in 510..DEFAULT_API_VERSION) { "API version must be between 510 and $DEFAULT_API_VERSION" }
         if (apiVersion == null) {
-            checkError(fdb_select_api_version_impl(requested, effective))
-            apiVersion = effective
+            checkError(fdb_select_api_version_impl(requested, DEFAULT_API_VERSION))
+            apiVersion = requested
             requestedApiVersion = requested
-        } else if (apiVersion != effective) {
-            throw IllegalStateException(
+        } else if (apiVersion != requested) {
+            throw IllegalArgumentException(
                 "FoundationDB API version already selected (${requestedApiVersion ?: apiVersion})."
             )
         }

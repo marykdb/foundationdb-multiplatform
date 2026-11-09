@@ -39,7 +39,8 @@ class ByteArrayUtilTest {
         assertContentEquals("ayzayza".encodeToByteArray(), replaced)
 
         val offset = ByteArrayUtil.replace(data, 1, 3, "xa".encodeToByteArray(), "q".encodeToByteArray())
-        assertContentEquals("qq".encodeToByteArray(), offset)
+        // The selected slice is "xax"; its trailing match cannot consume the final "a" outside it.
+        assertContentEquals("qx".encodeToByteArray(), offset)
     }
 
     @Test

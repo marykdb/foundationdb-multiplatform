@@ -3,6 +3,7 @@
 package maryk.foundationdb
 
 import foundationdb.c.FDBConflictRangeType
+import foundationdb.c.FDB_MUTATION_TYPE_COMPARE_AND_CLEAR
 import foundationdb.c.FDBMutationType
 import foundationdb.c.FDBStreamingMode
 import foundationdb.c.FDB_CONFLICT_RANGE_TYPE_READ
@@ -44,14 +45,15 @@ internal fun ConflictRangeType.toNative(): FDBConflictRangeType = when (this) {
 
 internal fun MutationType.toNative(): FDBMutationType = when (this) {
     MutationType.ADD -> FDB_MUTATION_TYPE_ADD
-    MutationType.AND -> FDB_MUTATION_TYPE_BIT_AND
-    MutationType.OR -> FDB_MUTATION_TYPE_BIT_OR
-    MutationType.XOR -> FDB_MUTATION_TYPE_BIT_XOR
+    MutationType.BIT_AND, MutationType.AND -> FDB_MUTATION_TYPE_BIT_AND
+    MutationType.BIT_OR, MutationType.OR -> FDB_MUTATION_TYPE_BIT_OR
+    MutationType.BIT_XOR, MutationType.XOR -> FDB_MUTATION_TYPE_BIT_XOR
     MutationType.MAX -> FDB_MUTATION_TYPE_MAX
     MutationType.MIN -> FDB_MUTATION_TYPE_MIN
     MutationType.BYTE_MIN -> FDB_MUTATION_TYPE_BYTE_MIN
     MutationType.BYTE_MAX -> FDB_MUTATION_TYPE_BYTE_MAX
     MutationType.SET_VERSIONSTAMPED_KEY -> FDB_MUTATION_TYPE_SET_VERSIONSTAMPED_KEY
     MutationType.SET_VERSIONSTAMPED_VALUE -> FDB_MUTATION_TYPE_SET_VERSIONSTAMPED_VALUE
+    MutationType.COMPARE_AND_CLEAR -> FDB_MUTATION_TYPE_COMPARE_AND_CLEAR
     MutationType.APPEND_IF_FITS -> FDB_MUTATION_TYPE_APPEND_IF_FITS
 }

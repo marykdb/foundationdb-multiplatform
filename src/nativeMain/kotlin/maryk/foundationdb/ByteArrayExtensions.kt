@@ -20,6 +20,7 @@ internal inline fun <T> ByteArray.withPointer(block: (CPointer<UByteVar>, Int) -
 
 internal fun Boolean.toFdbBool(): Int = if (this) 1 else 0
 
+/** Exclusive prefix-range end (strinc), not the endpoint for a single-key conflict. */
 internal fun ByteArray.nextKey(): ByteArray {
     for (i in size - 1 downTo 0) {
         val byte = this[i].toInt() and 0xFF

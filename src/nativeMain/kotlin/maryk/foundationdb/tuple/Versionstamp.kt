@@ -5,12 +5,21 @@ actual class Versionstamp private constructor(
     actual val bytes: ByteArray,
     private val transactionVersion: ByteArray
 ) : Comparable<Versionstamp> {
-    actual val userVersion: Int = unpackUserVersion(bytes, transactionVersion.size)
+    actual val userVersion: Int get() = unpackUserVersion(bytes, transactionVersion.size)
 
-    actual fun transactionVersion(): ByteArray = transactionVersion.copyOf()
+    actual fun getTransactionVersion(): ByteArray = transactionVersion()
+
+    actual fun transactionVersion(): ByteArray = bytes.copyOfRange(0, transactionVersion.size)
 
     actual override fun compareTo(other: Versionstamp): Int =
-        bytes.compareLexicographically(other.bytes)
+        when {
+            isComplete && !other.isComplete -> -1
+            !isComplete && other.isComplete -> 1
+            else -> bytes.compareLexicographically(other.bytes)
+        }
+
+    actual override fun equals(other: Any?): Boolean = other is Versionstamp && isComplete == other.isComplete && bytes.contentEquals(other.bytes)
+    actual override fun hashCode(): Int = bytes.contentHashCode()
 
     actual companion object {
         private val UNSET_TRANSACTION_VERSION = ByteArray(10) { 0xff.toByte() }

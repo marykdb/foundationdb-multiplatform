@@ -1,9 +1,17 @@
+@file:OptIn(ExperimentalForeignApi::class, ExperimentalAtomicApi::class)
+
 package maryk.foundationdb
 
+import maryk.foundationdb.async.ListAsyncIterator
 import maryk.foundationdb.async.AsyncIterator
 import maryk.foundationdb.async.AsyncUtil
 import maryk.foundationdb.async.CloseableAsyncIterator
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.cinterop.ExperimentalForeignApi
+import platform.posix.sched_yield
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -63,7 +71,7 @@ class NativeLifetimeTest {
     fun closeableIteratorCancelRunsCloseActionOnce() {
         var closeCalls = 0
         var delegateCancelCalls = 0
-        val delegate = object : AsyncIterator<String>() {
+        val delegate = object : ListAsyncIterator<String>() {
             override fun cancel() {
                 delegateCancelCalls++
             }
@@ -102,6 +110,41 @@ class NativeLifetimeTest {
                 database.close()
             }
         }
+    }
+
+    @Test
+    fun transactionCloseCanRaceTheLastPointerUser() = runBlocking {
+        FDB.selectAPIVersion(ApiVersion.LATEST)
+        val database = FDB.instance().open()
+        try {
+            withTimeout(10_000) {
+                repeat(500) {
+                    val transaction = database.createTransaction()
+                    val entered = CompletableDeferred<Unit>()
+                    val release = AtomicBoolean(false)
+                    val user = async(Dispatchers.Default) {
+                        transaction.handle.usePointer {
+                            entered.complete(Unit)
+                            while (!release.load()) sched_yield()
+                        }
+                    }
+                    try {
+                        entered.await()
+                        val closing = async(Dispatchers.Default) {
+                            release.store(true)
+                            transaction.close()
+                        }
+                        closing.await(); user.await()
+                        transaction.close()
+                        assertFailsWith<IllegalStateException> { transaction.getReadVersion() }
+                    } finally {
+                        release.store(true)
+                        user.await()
+                        transaction.close()
+                    }
+                }
+            }
+        } finally { database.close() }
     }
 
     @Test
@@ -170,7 +213,7 @@ class NativeLifetimeTest {
     fun asyncCollectCancelsIteratorOnFailure() {
         runBlocking {
             var cancelCalls = 0
-            val iterator = object : AsyncIterator<String>() {
+            val iterator = object : ListAsyncIterator<String>() {
                 override fun onHasNext(): FdbFuture<Boolean> =
                     failedFdbFuture(IllegalStateException("hasNext failed"))
 
@@ -192,7 +235,7 @@ class NativeLifetimeTest {
         runBlocking {
             var cancelCalls = 0
             var emitted = false
-            val iterator = object : AsyncIterator<String>() {
+            val iterator = object : ListAsyncIterator<String>() {
                 override fun onHasNext(): FdbFuture<Boolean> =
                     completedFdbFuture(!emitted)
 

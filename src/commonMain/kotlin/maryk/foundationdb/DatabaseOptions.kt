@@ -19,9 +19,13 @@ interface DatabaseOptionSink {
     fun setTransactionReportConflictingKeys()
     fun setUseConfigDatabase()
     fun setTestCausalReadRisky(value: Long)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    fun setTransactionIncludePortInAddress() { throw UnsupportedOperationException("setTransactionIncludePortInAddress is not implemented by this option sink") }
 }
 
 expect class DatabaseOptions : DatabaseOptionSink {
+    constructor(consumer: OptionConsumer)
+    fun getOptionConsumer(): OptionConsumer
     override fun setLocationCacheSize(value: Long)
     override fun setMaxWatches(value: Long)
     override fun setMachineId(id: String)
@@ -40,4 +44,6 @@ expect class DatabaseOptions : DatabaseOptionSink {
     override fun setTransactionReportConflictingKeys()
     override fun setUseConfigDatabase()
     override fun setTestCausalReadRisky(value: Long)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    override fun setTransactionIncludePortInAddress()
 }

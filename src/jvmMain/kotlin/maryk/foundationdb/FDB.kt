@@ -3,6 +3,8 @@ package maryk.foundationdb
 actual class FDB internal constructor(
     internal val delegate: com.apple.foundationdb.FDB
 ) {
+    actual fun getAPIVersion(): Int = delegate.apiVersion
+
     actual fun options(): NetworkOptions = NetworkOptions(delegate.options())
 
     actual fun open(): Database = Database(delegate.open())
@@ -12,6 +14,9 @@ actual class FDB internal constructor(
     actual fun setUnclosedWarning(enabled: Boolean) {
         delegate.setUnclosedWarning(enabled)
     }
+
+    actual fun startNetwork() = delegate.startNetwork()
+    actual fun stopNetwork() = delegate.stopNetwork()
 
     actual fun shutdown() {
         delegate.stopNetwork()

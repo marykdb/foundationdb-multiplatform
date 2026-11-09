@@ -7,11 +7,16 @@ package maryk.foundationdb
  * JVM actuals wrap the Java `CompletableFuture` type, while other platforms can plug in their own
  * event sources. Call [await] to suspend until the result is available.
  */
-interface FdbFuture<T> {
+interface FdbFuture<out T> {
     /**
      * Suspend until the result is available or rethrow the failure from the underlying operation.
+     * Cancelling an awaiting coroutine requests cancellation of the underlying operation.
+     * Callers sharing one future must coordinate cancellation ownership.
      */
     suspend fun await(): T
+
+    /** Await completion without cancelling the operation when this observer is cancelled. */
+    suspend fun awaitObserved(): T
 
     /**
      * Request cancellation of the underlying operation if possible.
@@ -30,6 +35,7 @@ interface FdbFuture<T> {
 }
 
 private class CompletedFdbFuture<T>(private val value: T) : FdbFuture<T> {
+    override suspend fun awaitObserved(): T = value
     override suspend fun await(): T = value
     override fun cancel() = Unit
     override val isDone: Boolean get() = true
@@ -37,6 +43,7 @@ private class CompletedFdbFuture<T>(private val value: T) : FdbFuture<T> {
 }
 
 private class FailedFdbFuture<T>(private val cause: Throwable) : FdbFuture<T> {
+    override suspend fun awaitObserved(): T = throw cause
     override suspend fun await(): T = throw cause
     override fun cancel() = Unit
     override val isDone: Boolean get() = true
@@ -52,3 +59,9 @@ fun <T> completedFdbFuture(value: T): FdbFuture<T> = CompletedFdbFuture(value)
  * Create an already-failed [FdbFuture] with [error].
  */
 fun <T> failedFdbFuture(error: Throwable): FdbFuture<T> = FailedFdbFuture(error)
+
+/**
+ * Start a suspending operation and expose its result as an FdbFuture.
+ * The operation owns its coroutine until completion or cancellation of the future.
+ */
+fun <T> fdbFuture(block: suspend () -> T): FdbFuture<T> = fdbFutureFromSuspend(block)

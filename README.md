@@ -9,7 +9,7 @@ etc.) can be used from JVM code as well as native Apple/Linux binaries.
 The repository currently tracks FoundationDB **7.3** and is meant for application developers that want:
 
 - A single, coroutine-friendly API surface shared between JVM and Kotlin/Native targets.
-- Access to the full FoundationDB feature set (tuple layer, range iterators, advanced transaction options)
+- Typed transaction, option, range, tuple and directory APIs on JVM and Native.
 
 ## Supported targets
 
@@ -32,6 +32,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation("io.maryk.foundationdb:foundationdb-multiplatform:7.3.81")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
             }
         }
     }
@@ -46,26 +47,28 @@ before running your binaries; the provided scripts under `foundationdb/scripts` 
 ### Minimal example
 
 ```kotlin
-fun main() {
-    // Pick the API version once per process and grab a singleton
+import kotlinx.coroutines.runBlocking
+import maryk.foundationdb.ApiVersion
+import maryk.foundationdb.FDB
+import maryk.foundationdb.readSuspend
+import maryk.foundationdb.tuple.Tuple
+
+fun main() = runBlocking {
     FDB.selectAPIVersion(ApiVersion.LATEST)
-    val fdb = FDB.instance()
-
-    // Execute a transactional block with automatic retries
-    fdb.run { txn ->
+    val database = FDB.instance().open()
+    try {
         val key = Tuple.from("hello").pack()
-        txn.set(key, "world".encodeToByteArray())
+        database.run { it.set(key, "world".encodeToByteArray()) }
+        val value = database.readSuspend { it.get(key).await() }
+        println(value?.decodeToString())
+    } finally {
+        database.close()
     }
-
-    // Read back the value
-    val value = fdb.read { txn ->
-        val key = Tuple.from("hello").pack()
-        txn.get(key).await()
-    }
-
-    println(value?.decodeToString())
 }
 ```
+
+See the [portable API guide](documentation/api-design.md) for coroutine adapters, streaming,
+JVM integration and compatibility.
 
 Additional examples live in `src/commonTest/kotlin/maryk/foundationdb` and mirror all major FoundationDB features
 (range iterators, tuple decoding helpers, management API, etc.).

@@ -7,7 +7,9 @@ actual enum class StreamingMode {
     SMALL,
     MEDIUM,
     LARGE,
-    SERIAL
+    SERIAL;
+
+    actual fun code(): Int = ordinal - 2
 }
 
 internal fun StreamingMode.toJava(): com.apple.foundationdb.StreamingMode = when (this) {

@@ -1,10 +1,14 @@
 package maryk.foundationdb.tuple
 
+import maryk.foundationdb.NativeEnvironment
 import maryk.foundationdb.ByteArrayUtil
 import maryk.foundationdb.StringUtil
 import maryk.foundationdb.TupleUtil
+import kotlin.text.CharacterCodingException
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+internal fun versionstampOffsetSize(): Int = if (NativeEnvironment.selectedApiVersion() < 520) 2 else 4
 
 internal object TupleCodec {
     private const val NULL_CODE: Byte = 0x00
@@ -35,15 +39,14 @@ internal object TupleCodec {
         val payloadSize = getPackedSize(items, nested = false)
         val state = EncodeState(payloadSize)
         encodeAll(state, items, nested = false)
+        require(state.versionCount == 1) { "Exactly one incomplete Versionstamp is required" }
         require(state.versionPos >= 0) {
             "No incomplete Versionstamp included in tuple pack with versionstamp"
         }
-        val suffix = ByteArray(4)
+        val suffix = ByteArray(versionstampOffsetSize())
         val offset = state.versionPos
-        suffix[0] = (offset and 0xFF).toByte()
-        suffix[1] = ((offset shr 8) and 0xFF).toByte()
-        suffix[2] = ((offset shr 16) and 0xFF).toByte()
-        suffix[3] = ((offset shr 24) and 0xFF).toByte()
+        require(suffix.size != 2 || offset <= 0xffff) { "Versionstamp offset exceeds legacy API limit" }
+        for (index in suffix.indices) suffix[index] = (offset ushr (index * 8)).toByte()
         val packed = state.toByteArray()
         val result = ByteArray(packed.size + suffix.size)
         packed.copyInto(result, 0)
@@ -51,11 +54,13 @@ internal object TupleCodec {
         return result
     }
 
-    fun unpack(bytes: ByteArray): List<Any?> {
+    fun unpack(bytes: ByteArray, offset: Int = 0, length: Int = bytes.size - offset): List<Any?> {
+        require(offset >= 0 && length >= 0 && offset <= bytes.size - length)
         val state = DecodeState()
-        var pos = 0
-        while (pos < bytes.size) {
-            decode(state, bytes, pos, bytes.size)
+        val limit = offset + length
+        var pos = offset
+        while (pos < limit) {
+            decode(state, bytes, pos, limit)
             pos = state.end
         }
         return state.values
@@ -82,6 +87,7 @@ internal object TupleCodec {
                 state.addLong(TupleUtil.encodeDoubleBits(value))
             }
             is Boolean -> state.addByte(if (value) TRUE_CODE else FALSE_CODE)
+            is TupleInteger -> encodeInteger(state, value)
             is Number -> encodeLong(state, value.toLong())
             is Versionstamp -> encodeVersionstamp(state, value)
             is Uuid -> encodeUuid(state, value)
@@ -102,6 +108,19 @@ internal object TupleCodec {
         state.addByte(STRING_CODE)
         appendEscaped(state, value.encodeToByteArray())
         state.addByte(NULL_CODE)
+    }
+
+    private fun encodeInteger(state: EncodeState, number: TupleInteger) {
+        val bytes = number.magnitudeBytes()
+        require(bytes.size <= 255) { "Tuple integer magnitude exceeds 255 bytes" }
+        if (bytes.isEmpty()) { state.addByte(INT_ZERO_CODE); return }
+        val positive = number.sign > 0
+        if (bytes.size <= 8) state.addByte((INT_ZERO_CODE + if (positive) bytes.size else -bytes.size).toByte())
+        else {
+            state.addByte(if (positive) POS_INT_END else NEG_INT_START)
+            state.addByte((if (positive) bytes.size else bytes.size xor 255).toByte())
+        }
+        for (byte in bytes) state.addByte(if (positive) byte else (byte.toInt() xor 255).toByte())
     }
 
     private fun encodeLong(state: EncodeState, number: Long) {
@@ -131,10 +150,8 @@ internal object TupleCodec {
 
     @OptIn(ExperimentalUuidApi::class)
     private fun encodeUuid(state: EncodeState, uuid: Uuid) {
-        val (msb, lsb) = uuidToLongs(uuid)
         state.addByte(UUID_CODE)
-        state.addLong(msb)
-        state.addLong(lsb)
+        uuid.toLongs { msb, lsb -> state.addLong(msb); state.addLong(lsb) }
     }
 
     private fun encodeList(state: EncodeState, list: List<*>) {
@@ -172,14 +189,17 @@ internal object TupleCodec {
             STRING_CODE -> {
                 val end = findTerminator(bytes, start, limit)
                 val decoded = unescape(bytes, start, end)
-                val value = decoded.decodeToString()
+                val value = try { decoded.decodeToString(throwOnInvalidSequence = true) }
+                    catch (error: CharacterCodingException) { throw IllegalArgumentException("Malformed UTF-8 string", error) }
                 state.add(value, end + 1)
             }
             FLOAT_CODE -> {
+                require(Float.SIZE_BYTES <= limit - start) { "Truncated tuple float" }
                 val raw = bytes.getInt(start)
                 state.add(TupleUtil.decodeFloatBits(raw), start + Int.SIZE_BYTES)
             }
             DOUBLE_CODE -> {
+                require(Double.SIZE_BYTES <= limit - start) { "Truncated tuple double" }
                 val raw = bytes.getLong(start)
                 state.add(TupleUtil.decodeDoubleBits(raw), start + Long.SIZE_BYTES)
             }
@@ -192,16 +212,19 @@ internal object TupleCodec {
                 state.add(value, end)
             }
             UUID_CODE -> {
+                require(2 * Long.SIZE_BYTES <= limit - start) { "Truncated tuple UUID" }
                 val msb = bytes.getLong(start)
                 val lsb = bytes.getLong(start + Long.SIZE_BYTES)
-                state.add(longsToUuid(msb, lsb), start + 2 * Long.SIZE_BYTES)
+                state.add(Uuid.fromLongs(msb, lsb), start + 2 * Long.SIZE_BYTES)
             }
             NESTED_CODE -> {
                 val nestedItems = mutableListOf<Any?>()
                 var cursor = start
+                var foundTerminator = false
                 while (cursor < limit) {
                     if (bytes[cursor] == NULL_CODE && (cursor + 1 >= limit || bytes[cursor + 1] != 0xFF.toByte())) {
                         cursor += 1
+                        foundTerminator = true
                         break
                     } else if (bytes[cursor] == NULL_CODE && cursor + 1 < limit && bytes[cursor + 1] == 0xFF.toByte()) {
                         nestedItems += null
@@ -213,6 +236,7 @@ internal object TupleCodec {
                         cursor = nestedState.end
                     }
                 }
+                require(foundTerminator) { "No terminator found for nested tuple" }
                 state.add(nestedItems, cursor)
             }
             else -> decodeNumericOrExtended(state, bytes, code, start, limit)
@@ -227,36 +251,35 @@ internal object TupleCodec {
         limit: Int
     ) {
         when {
-            code == POS_INT_END -> {
-                val length = bytes[start].toInt() and 0xff
-                require(length <= Long.SIZE_BYTES) { "BigInteger decoding not supported" }
-                var value = 0L
-                for (i in 0 until length) {
-                    value = (value shl 8) or (bytes[start + 1 + i].toLong() and 0xff)
-                }
-                state.add(value, start + length + 1)
-            }
-            code == NEG_INT_START -> {
-                val length = (bytes[start].toInt() xor 0xff) and 0xff
-                require(length <= Long.SIZE_BYTES) { "BigInteger decoding not supported" }
-                var value = -1L
-                for (i in 0 until length) {
-                    value = (value shl 8) or (bytes[start + 1 + i].toLong() and 0xff)
-                }
-                state.add(value + 1, start + length + 1)
-            }
-            code > NEG_INT_START && code < POS_INT_END -> {
+            code >= NEG_INT_START && code <= POS_INT_END -> {
                 val positive = code >= INT_ZERO_CODE
-                val length = if (positive) code - INT_ZERO_CODE else INT_ZERO_CODE - code
+                val extended = code == POS_INT_END || code == NEG_INT_START
                 var cursor = start
-                var result = if (positive) 0L else -1L
-                repeat(length) {
-                    result = (result shl 8) or (bytes[cursor++].toLong() and 0xff)
+                val length = if (extended) {
+                    require(cursor < limit) { "Truncated integer length" }
+                    val size = bytes[cursor++].toInt() and 255
+                    if (positive) size else size xor 255
+                } else if (positive) code - INT_ZERO_CODE else INT_ZERO_CODE - code
+                require(length <= limit - cursor) { "Truncated tuple integer" }
+                if (!extended) {
+                    var magnitude = 0uL
+                    for (index in 0 until length) {
+                        val byte = bytes[cursor + index].toInt() and 255
+                        magnitude = (magnitude shl 8) or (if (positive) byte else byte xor 255).toULong()
+                    }
+                    val bound = if (positive) Long.MAX_VALUE.toULong() else 1uL shl 63
+                    if (magnitude <= bound) {
+                        state.add(if (positive) magnitude.toLong() else -magnitude.toLong(), cursor + length)
+                        return
+                    }
                 }
-                if (!positive) {
-                    result += 1
+                val magnitude = ByteArray(length) { index ->
+                    val byte = bytes[cursor + index]
+                    if (positive) byte else (byte.toInt() xor 255).toByte()
                 }
-                state.add(result, cursor)
+                val integer = TupleInteger.fromMagnitude(if (positive) 1 else -1, magnitude)
+                val value: Any = if (extended) integer else try { integer.toLongExact() } catch (_: ArithmeticException) { integer }
+                state.add(value, cursor + length)
             }
             else -> throw IllegalArgumentException("Unsupported tuple type code: $code")
         }
@@ -279,34 +302,25 @@ internal object TupleCodec {
     }
 
     private fun unescape(bytes: ByteArray, start: Int, end: Int): ByteArray {
-        var hasEscaped = false
-        var idx = start
-        while (idx < end) {
-            if (bytes[idx] == NULL_CODE && idx + 1 < end && bytes[idx + 1] == 0xFF.toByte()) {
-                hasEscaped = true
-                break
-            }
-            idx++
+        var escapes = 0
+        var index = start
+        while (index < end) {
+            if (bytes[index++] == NULL_CODE) { escapes++; index++ }
         }
-        if (!hasEscaped) {
-            return bytes.copyOfRange(start, end)
+        if (escapes == 0) return bytes.copyOfRange(start, end)
+        val output = ByteArray(end - start - escapes)
+        index = start
+        var target = 0
+        while (index < end) {
+            val value = bytes[index++]
+            output[target++] = value
+            if (value == NULL_CODE) index++
         }
-        val output = ArrayList<Byte>(end - start)
-        idx = start
-        while (idx < end) {
-            val value = bytes[idx++]
-            if (value == NULL_CODE && idx < end && bytes[idx] == 0xFF.toByte()) {
-                output += NULL_CODE
-                idx++
-            } else {
-                output += value
-            }
-        }
-        return output.toByteArray()
+        return output
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    private fun getPackedSize(items: List<Any?>, nested: Boolean): Int {
+    fun getPackedSize(items: List<Any?>, nested: Boolean): Int {
         var size = 0
         for (item in items) {
             size += when (item) {
@@ -316,11 +330,12 @@ internal object TupleCodec {
                 is Float -> 1 + Float.SIZE_BYTES
                 is Double -> 1 + Double.SIZE_BYTES
                 is Boolean -> 1
+                is TupleInteger -> item.magnitudeSize.let { require(it <= 255); 1 + it + if (it > 8) 1 else 0 }
                 is Number -> 1 + TupleUtil.minimalByteCount(item.toLong())
                 is Versionstamp -> 1 + Versionstamp.LENGTH
                 is Uuid -> 1 + 2 * Long.SIZE_BYTES
                 is List<*> -> 2 + getPackedSize(item, true)
-                is Tuple -> 2 + getPackedSize(item.items, true)
+                is Tuple -> 2 + getPackedSize(item.elements, true)
                 else -> throw IllegalArgumentException("Unsupported tuple element type: ${item::class}")
             }
         }
@@ -330,6 +345,8 @@ internal object TupleCodec {
     private class EncodeState(expectedSize: Int) {
         private val buffer = ByteArray(expectedSize)
         private var position = 0
+        var versionCount: Int = 0
+            private set
         var versionPos: Int = -1
             private set
 
@@ -340,6 +357,7 @@ internal object TupleCodec {
         fun addBytes(bytes: ByteArray, markVersion: Boolean = false) {
             bytes.copyInto(buffer, position)
             if (markVersion) {
+                versionCount++
                 if (versionPos < 0) {
                     versionPos = position
                 }
@@ -359,7 +377,7 @@ internal object TupleCodec {
             addInt(value.toInt())
         }
 
-        fun toByteArray(): ByteArray = buffer.copyOf(position)
+        fun toByteArray(): ByteArray = if (position == buffer.size) buffer else buffer.copyOf(position)
     }
 
     private class DecodeState {
@@ -382,48 +400,4 @@ internal object TupleCodec {
     private fun ByteArray.getLong(start: Int): Long =
         ((getInt(start).toLong() shl 32) or (getInt(start + 4).toLong() and 0xffffffffL))
 
-    @OptIn(ExperimentalUuidApi::class)
-    private fun uuidToLongs(uuid: Uuid): Pair<Long, Long> {
-        val hex = uuid.toString().replace("-", "")
-        require(hex.length == 32) { "Invalid UUID string: ${uuid}" }
-        val msb = hexToLong(hex.take(16))
-        val lsb = hexToLong(hex.substring(16))
-        return msb to lsb
-    }
-
-    @OptIn(ExperimentalUuidApi::class)
-    private fun longsToUuid(msb: Long, lsb: Long): Uuid {
-        val hex = buildString(32) {
-            appendLongAsHex(msb)
-            appendLongAsHex(lsb)
-        }
-        val formatted = buildString(36) {
-            append(hex.substring(0, 8))
-            append('-')
-            append(hex.substring(8, 12))
-            append('-')
-            append(hex.substring(12, 16))
-            append('-')
-            append(hex.substring(16, 20))
-            append('-')
-            append(hex.substring(20))
-        }
-        return Uuid.parse(formatted)
-    }
-
-    private fun hexToLong(hex: String): Long {
-        var result = 0L
-        for (ch in hex) {
-            val digit = ch.digitToInt(16)
-            result = (result shl 4) or digit.toLong()
-        }
-        return result
-    }
-
-    private fun StringBuilder.appendLongAsHex(value: Long) {
-        for (shift in 60 downTo 0 step 4) {
-            val nibble = ((value ushr shift) and 0xF).toInt()
-            append("0123456789abcdef"[nibble])
-        }
-    }
 }

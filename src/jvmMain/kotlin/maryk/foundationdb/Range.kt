@@ -9,6 +9,9 @@ actual class Range internal constructor(internal val delegate: com.apple.foundat
     actual val end: ByteArray
         get() = delegate.end
 
+    actual override fun equals(other: Any?): Boolean = other is Range && delegate == other.delegate
+    actual override fun hashCode(): Int = delegate.hashCode()
+
     actual companion object {
         actual fun startsWith(prefix: ByteArray): Range =
             Range(com.apple.foundationdb.Range.startsWith(prefix))

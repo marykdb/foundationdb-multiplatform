@@ -1,8 +1,12 @@
 package maryk.foundationdb
 
+import com.apple.foundationdb.NetworkOptions as JavaNetworkOptions
+
 actual class NetworkOptions internal constructor(
     internal val delegate: com.apple.foundationdb.NetworkOptions
 ) {
+    actual constructor(consumer: OptionConsumer) : this(JavaNetworkOptions { code, value -> consumer.setOption(code, value) })
+
     actual fun setTraceEnable(path: String?) {
         delegate.setTraceEnable(path)
     }
@@ -106,4 +110,30 @@ actual class NetworkOptions internal constructor(
     actual fun setDisableClientBypass() {
         delegate.setDisableClientBypass()
     }
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual fun setLocalAddress(value: String) = delegate.setLocalAddress(value)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual fun setClusterFile(value: String) = delegate.setClusterFile(value)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual fun setTLSPlugin(value: String) = delegate.setTLSPlugin(value)
+    actual fun setBuggifySectionActivatedProbability(value: Long) = delegate.setBuggifySectionActivatedProbability(value)
+    actual fun setBuggifySectionFiredProbability(value: Long) = delegate.setBuggifySectionFiredProbability(value)
+    actual fun setTLSCaBytes(value: ByteArray) = delegate.setTLSCaBytes(value)
+    actual fun setTLSCaPath(value: String) = delegate.setTLSCaPath(value)
+    actual fun setTLSPassword(value: String) = delegate.setTLSPassword(value)
+    actual fun setDisableMultiVersionClientApi() = delegate.setDisableMultiVersionClientApi()
+    actual fun setCallbacksOnExternalThreads() = delegate.setCallbacksOnExternalThreads()
+    actual fun setExternalClientLibrary(value: String) = delegate.setExternalClientLibrary(value)
+    actual fun setExternalClientDirectory(value: String) = delegate.setExternalClientDirectory(value)
+    actual fun setDisableLocalClient() = delegate.setDisableLocalClient()
+    actual fun setClientThreadsPerVersion(value: Long) = delegate.setClientThreadsPerVersion(value)
+    actual fun setFutureVersionClientLibrary(value: String) = delegate.setFutureVersionClientLibrary(value)
+    actual fun setRetainClientLibraryCopies() = delegate.setRetainClientLibraryCopies()
+    actual fun setIgnoreExternalClientFailures() = delegate.setIgnoreExternalClientFailures()
+    actual fun setFailIncompatibleClient() = delegate.setFailIncompatibleClient()
+    actual fun setDisableClientStatisticsLogging() = delegate.setDisableClientStatisticsLogging()
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual fun setEnableSlowTaskProfiling() = delegate.setEnableSlowTaskProfiling()
+    actual fun getOptionConsumer(): OptionConsumer = OptionConsumer { code, value -> delegate.optionConsumer.setOption(code, value) }
+
 }

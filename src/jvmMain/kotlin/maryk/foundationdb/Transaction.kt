@@ -1,12 +1,21 @@
 package maryk.foundationdb
 
+import com.apple.foundationdb.MutationType as JavaMutationType
+import java.util.concurrent.CompletableFuture
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.CompletionException
 import java.util.concurrent.ExecutionException
 
 actual class Transaction internal constructor(
-    override val delegate: com.apple.foundationdb.Transaction
+    override var delegate: com.apple.foundationdb.Transaction
 ) : ReadTransaction(delegate), TransactionContext {
+    private val ownershipLock = Any()
+    private var closed = false
+    private var retryInFlight = false
+
     actual override fun options(): TransactionOptions = TransactionOptions(delegate.options())
+
+    actual fun getDatabase(): Database = Database(delegate.database)
 
     actual fun set(key: ByteArray, value: ByteArray) {
         delegate.set(key, value)
@@ -41,28 +50,83 @@ actual class Transaction internal constructor(
     }
 
     actual fun atomicAdd(key: ByteArray, operand: ByteArray) {
-        delegate.mutate(com.apple.foundationdb.MutationType.ADD, key, operand)
+        delegate.mutate(JavaMutationType.ADD, key, operand)
     }
 
     actual fun mutate(type: MutationType, key: ByteArray, value: ByteArray) {
         delegate.mutate(type.toJava(), key, value)
     }
 
-    actual fun getEstimatedRangeSizeBytes(range: Range): FdbFuture<Long> =
+    actual override fun getEstimatedRangeSizeBytes(range: Range): FdbFuture<Long> =
         delegate.getEstimatedRangeSizeBytes(range.delegate).toFdbFuture()
 
-    actual fun commit(): FdbFuture<Unit> =
-        delegate.commit().thenApply { }.toFdbFuture()
+    actual fun getApproximateSize(): FdbFuture<Long> = delegate.approximateSize.toFdbFuture()
 
-    actual fun onError(error: FDBException): FdbFuture<Unit> =
-        delegate.onError(error).thenApply { }.toFdbFuture()
+    actual override fun getRangeSplitPoints(range: Range, chunkSize: Long): FdbFuture<List<ByteArray>> {
+        require(chunkSize > 0)
+        return delegate.getRangeSplitPoints(range.begin, range.end, chunkSize).mapToFdbFuture { result ->
+            result.keys.map { it.copyOf() }
+        }
+    }
+
+    actual fun cancel() = synchronized(ownershipLock) {
+        if (!closed) {
+            if (retryInFlight) close() else delegate.cancel()
+        }
+    }
+
+    actual fun commit(): FdbFuture<Unit> =
+        delegate.commit().mapToFdbFuture { }
+
+    actual fun onError(error: Throwable): FdbFuture<Transaction> = recover(error)
+
+    actual fun onError(error: FDBException): FdbFuture<Unit> = recover(error).asCompletableFuture().mapToFdbFuture { }
+
+    private fun recover(error: Throwable): FdbFuture<Transaction> {
+        val source = synchronized(ownershipLock) {
+            check(!closed) { "Transaction is closed" }
+            check(!retryInFlight) { "Transaction retry is already in flight" }
+            delegate.onError(error).also { retryInFlight = true }
+        }
+        val result = CompletableFuture<Transaction>()
+        result.whenComplete { _, _ -> if (result.isCancelled) close() }
+        // This observer owns the transferred SDK transaction. Never cancel the observer:
+        // even a late replacement must be installed or explicitly closed.
+        source.whenComplete { replacement, failure ->
+            val discardReplacement = synchronized(ownershipLock) {
+                retryInFlight = false
+                if (failure == null && !closed && !result.isCancelled) {
+                    delegate = replacement
+                    false
+                } else true
+            }
+            // Completing a future can synchronously run application callbacks.
+            // Do not invoke them while holding the transaction ownership monitor.
+            if (failure != null) {
+                result.completeExceptionally(failure)
+            } else if (discardReplacement) {
+                replacement.close()
+                result.completeExceptionally(CancellationException("Transaction closed during retry"))
+            } else {
+                result.complete(this)
+            }
+        }
+        return result.toFdbFuture()
+    }
 
     actual fun watch(key: ByteArray): FdbFuture<Unit> =
-        delegate.watch(key).thenApply { }.toFdbFuture()
+        delegate.watch(key).mapToFdbFuture { }
 
-    actual fun close() {
-        delegate.close()
+    actual fun close() = synchronized(ownershipLock) {
+        if (!closed) {
+            closed = true
+            delegate.close()
+        }
     }
+
+    actual fun clearRangeStartsWith(prefix: ByteArray) = delegate.clearRangeStartsWith(prefix)
+    actual fun getCommittedVersion(): Long = delegate.committedVersion
+    actual fun getVersionstamp(): FdbFuture<ByteArray> = delegate.versionstamp.toFdbFuture()
 
     actual override fun <T> run(block: (Transaction) -> T): T {
         while (true) {
@@ -73,7 +137,7 @@ actual class Transaction internal constructor(
             } catch (t: Throwable) {
                 val unwrapped = t.unwrapCompletionLike()
                 if (unwrapped is FDBException) {
-                    delegate.onError(unwrapped).join()
+                    onError(unwrapped).asCompletableFuture().join()
                 } else {
                     throw unwrapped
                 }
@@ -106,18 +170,19 @@ actual class Transaction internal constructor(
     actual override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T> =
         delegate.readAsync { rt -> block(ReadTransaction(rt)).asCompletableFuture() }.toFdbFuture()
 
-    private fun MutationType.toJava(): com.apple.foundationdb.MutationType = when (this) {
-        MutationType.ADD -> com.apple.foundationdb.MutationType.ADD
-        MutationType.AND -> com.apple.foundationdb.MutationType.BIT_AND
-        MutationType.OR -> com.apple.foundationdb.MutationType.BIT_OR
-        MutationType.XOR -> com.apple.foundationdb.MutationType.BIT_XOR
-        MutationType.MAX -> com.apple.foundationdb.MutationType.MAX
-        MutationType.MIN -> com.apple.foundationdb.MutationType.MIN
-        MutationType.BYTE_MIN -> com.apple.foundationdb.MutationType.BYTE_MIN
-        MutationType.BYTE_MAX -> com.apple.foundationdb.MutationType.BYTE_MAX
-        MutationType.SET_VERSIONSTAMPED_KEY -> com.apple.foundationdb.MutationType.SET_VERSIONSTAMPED_KEY
-        MutationType.SET_VERSIONSTAMPED_VALUE -> com.apple.foundationdb.MutationType.SET_VERSIONSTAMPED_VALUE
-        MutationType.APPEND_IF_FITS -> com.apple.foundationdb.MutationType.APPEND_IF_FITS
+    private fun MutationType.toJava(): JavaMutationType = when (this) {
+        MutationType.ADD -> JavaMutationType.ADD
+        MutationType.BIT_AND, MutationType.AND -> JavaMutationType.BIT_AND
+        MutationType.BIT_OR, MutationType.OR -> JavaMutationType.BIT_OR
+        MutationType.BIT_XOR, MutationType.XOR -> JavaMutationType.BIT_XOR
+        MutationType.MAX -> JavaMutationType.MAX
+        MutationType.MIN -> JavaMutationType.MIN
+        MutationType.BYTE_MIN -> JavaMutationType.BYTE_MIN
+        MutationType.BYTE_MAX -> JavaMutationType.BYTE_MAX
+        MutationType.SET_VERSIONSTAMPED_KEY -> JavaMutationType.SET_VERSIONSTAMPED_KEY
+        MutationType.SET_VERSIONSTAMPED_VALUE -> JavaMutationType.SET_VERSIONSTAMPED_VALUE
+        MutationType.COMPARE_AND_CLEAR -> JavaMutationType.COMPARE_AND_CLEAR
+        MutationType.APPEND_IF_FITS -> JavaMutationType.APPEND_IF_FITS
     }
 }
 

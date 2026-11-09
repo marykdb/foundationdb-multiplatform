@@ -1,21 +1,27 @@
 package maryk.foundationdb
 
-actual class IterableComparator<T : Comparable<T>> actual constructor() : Comparator<Iterable<T>> {
-    actual override fun compare(a: Iterable<T>, b: Iterable<T>): Int {
-        val it1 = a.iterator()
-        val it2 = b.iterator()
-        while (true) {
-            val hasNext1 = it1.hasNext()
-            val hasNext2 = it2.hasNext()
-            if (!hasNext1 || !hasNext2) {
-                return when {
-                    hasNext1 && !hasNext2 -> 1
-                    !hasNext1 && hasNext2 -> -1
-                    else -> 0
-                }
-            }
-            val comparison = it1.next().compareTo(it2.next())
-            if (comparison != 0) return comparison
-        }
+import com.apple.foundationdb.tuple.IterableComparator as JavaIterableComparator
+import maryk.foundationdb.tuple.convertTupleValue
+
+private val tupleComparator = JavaIterableComparator()
+
+internal actual fun compareTupleIterables(a: Iterable<Any?>, b: Iterable<Any?>): Int =
+    tupleComparator.compare(a.javaTupleItems(), b.javaTupleItems())
+
+/** Convert only items actually visited by the Java comparator, not the whole iterable. */
+private fun Iterable<Any?>.javaTupleItems(): Iterable<Any?> = Iterable {
+    val source = iterator()
+    object : Iterator<Any?> {
+        override fun hasNext(): Boolean = source.hasNext()
+        override fun next(): Any? = comparatorValue(source.next())
     }
+}
+
+private fun comparatorValue(value: Any?): Any? = when (value) {
+    is List<*> -> object : AbstractList<Any?>() {
+        override val size: Int get() = value.size
+        override fun get(index: Int): Any? = comparatorValue(value[index])
+        override fun iterator(): Iterator<Any?> = value.javaTupleItems().iterator()
+    }
+    else -> convertTupleValue(value)
 }

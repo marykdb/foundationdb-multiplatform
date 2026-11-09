@@ -1,8 +1,12 @@
 package maryk.foundationdb
 
+import com.apple.foundationdb.DatabaseOptions as JavaDatabaseOptions
+
 actual class DatabaseOptions internal constructor(
     internal val delegate: com.apple.foundationdb.DatabaseOptions
 ) : DatabaseOptionSink {
+    actual constructor(consumer: OptionConsumer) : this(JavaDatabaseOptions { code, value -> consumer.setOption(code, value) })
+
     actual override fun setLocationCacheSize(value: Long) {
         delegate.setLocationCacheSize(value)
     }
@@ -74,4 +78,8 @@ actual class DatabaseOptions internal constructor(
     actual override fun setTestCausalReadRisky(value: Long) {
         delegate.setTestCausalReadRisky(value)
     }
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    actual override fun setTransactionIncludePortInAddress() = delegate.setTransactionIncludePortInAddress()
+    actual fun getOptionConsumer(): OptionConsumer = OptionConsumer { code, value -> delegate.optionConsumer.setOption(code, value) }
+
 }

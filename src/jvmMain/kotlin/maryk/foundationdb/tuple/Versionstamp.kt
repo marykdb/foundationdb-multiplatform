@@ -12,9 +12,14 @@ actual class Versionstamp internal constructor(
     actual val userVersion: Int
         get() = delegate.userVersion
 
+    actual fun getTransactionVersion(): ByteArray = transactionVersion()
+
     actual fun transactionVersion(): ByteArray = delegate.transactionVersion
 
     actual override fun compareTo(other: Versionstamp): Int = delegate.compareTo(other.delegate)
+
+    actual override fun equals(other: Any?): Boolean = other is Versionstamp && delegate == other.delegate
+    actual override fun hashCode(): Int = delegate.hashCode()
 
     actual companion object {
         actual val LENGTH: Int = com.apple.foundationdb.tuple.Versionstamp.LENGTH

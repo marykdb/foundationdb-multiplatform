@@ -2,6 +2,15 @@
 
 package maryk.foundationdb
 
+import foundationdb.c.fdb_transaction_get_blob_granule_ranges
+
+import foundationdb.c.FDBKey
+import foundationdb.c.fdb_future_get_key_array
+import foundationdb.c.fdb_future_get_key
+import foundationdb.c.fdb_transaction_get_key
+import foundationdb.c.fdb_transaction_get_estimated_range_size_bytes
+import foundationdb.c.fdb_transaction_get_range_split_points
+
 import foundationdb.c.FDBKeySelector
 import foundationdb.c.FDBKeyValue
 import foundationdb.c.FDBFuture
@@ -34,166 +43,117 @@ import kotlinx.cinterop.value
 import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import maryk.foundationdb.async.AsyncUtil
 import maryk.foundationdb.async.AsyncIterable
 import maryk.foundationdb.async.AsyncIterator
 import kotlin.collections.ArrayDeque
 import kotlin.collections.copyOf
+import platform.posix.sched_yield
+
+internal interface RangePageData<out T : Any> {
+    val values: List<T>
+    val lastKey: ByteArray?
+    val hasMore: Boolean
+}
 
 internal data class RangePage(
-    val values: List<KeyValue>,
-    val lastKey: ByteArray?,
-    val hasMore: Boolean
-)
+    override val values: List<KeyValue>,
+    override val lastKey: ByteArray?,
+    override val hasMore: Boolean
+) : RangePageData<KeyValue>
 
 internal data class MappedRangePage(
-    val values: List<MappedKeyValue>,
-    val lastKey: ByteArray?,
-    val hasMore: Boolean
-)
+    override val values: List<MappedKeyValue>,
+    override val lastKey: ByteArray?,
+    override val hasMore: Boolean
+) : RangePageData<MappedKeyValue>
 
 private fun KeySelector.copySelector(): KeySelector = KeySelector(key.copyOf(), orEqual, offset)
 
-private class StreamingRangeIterator(
+/** One consumer, with thread-safe cancellation and coalesced pending page requests. */
+internal class StreamingRangeIterator<T : Any>(
     initialBegin: KeySelector,
     initialEnd: KeySelector,
     private val limit: Int,
     private val reverse: Boolean,
-    private val fetchPage: (KeySelector, KeySelector, Int, Int) -> FdbFuture<RangePage>
-) : AsyncIterator<KeyValue>() {
-    private val buffer = ArrayDeque<KeyValue>()
+    private val fetchPage: (KeySelector, KeySelector, Int, Int) -> FdbFuture<RangePageData<T>>
+) : AsyncIterator<T> {
+    private val stateLock = AtomicInt(0)
+    private val buffer = ArrayDeque<T>()
     private var remaining = if (limit > 0) limit else Int.MAX_VALUE
     private var iteration = 1
     private var begin = initialBegin
     private var end = initialEnd
     private var exhausted = false
+    private var cancelled = false
+    private var inFlight: FdbFuture<Boolean>? = null
 
     private suspend fun requestMore(): Boolean {
-        if (exhausted || (limit > 0 && remaining <= 0)) return false
-        val pageLimit = if (limit == 0) 0 else remaining
-        val page = fetchPage(begin, end, pageLimit, iteration).await()
-        iteration++
-        if (page.values.isNotEmpty()) {
-            val emitted = if (limit == 0) page.values else page.values.take(remaining)
-            emitted.forEach { buffer.addLast(it) }
-            if (limit > 0) {
-                remaining -= emitted.size
-            }
+        if (withStateLock { cancelled || exhausted || (limit > 0 && remaining <= 0) }) return false
+        // Only the coalesced in-flight operation changes selectors and remaining limits.
+        val page = fetchPage(begin, end, if (limit == 0) 0 else remaining, iteration).await()
+        return withStateLock {
+            if (cancelled) return@withStateLock false
+            iteration++
+            val count = if (limit == 0) page.values.size else minOf(page.values.size, remaining)
+            for (index in 0 until count) buffer.addLast(page.values[index])
+            if (limit > 0) remaining -= count
+            val boundary = page.lastKey
+            if (page.hasMore && (limit == 0 || remaining > 0) && boundary != null) {
+                if (reverse) end = KeySelector.firstGreaterOrEqual(boundary)
+                else begin = KeySelector.firstGreaterThan(boundary)
+            } else exhausted = true
+            buffer.isNotEmpty()
         }
-        val canContinue = page.hasMore && (limit == 0 || remaining > 0)
-        val boundary = page.lastKey
-        if (canContinue && boundary != null) {
-            if (reverse) {
-                end = KeySelector.lastLessThan(boundary)
-            } else {
-                begin = KeySelector.firstGreaterThan(boundary)
-            }
-        } else {
-            exhausted = true
-        }
-        return buffer.isNotEmpty()
     }
 
-    private fun ensureBufferBlocking(): Boolean {
-        if (buffer.isNotEmpty()) return true
-        if (exhausted) return false
-        return runBlocking { requestMore() } && buffer.isNotEmpty()
+    override fun hasNext(): Boolean = when (val ready = onHasNext()) {
+        AsyncUtil.READY_TRUE -> true
+        AsyncUtil.READY_FALSE -> false
+        else -> runBlocking { ready.await() }
     }
 
-    override fun hasNext(): Boolean = ensureBufferBlocking()
-
-    override suspend fun next(): KeyValue {
-        if (buffer.isEmpty()) {
-            if (!requestMore()) throw NoSuchElementException()
+    override suspend fun next(): T {
+        while (true) {
+            val value = withStateLock { if (cancelled || buffer.isEmpty()) null else buffer.removeFirst() }
+            if (value != null) return value
+            if (!onHasNext().await()) throw NoSuchElementException()
         }
-        return buffer.removeFirst()
     }
 
-    override fun onHasNext(): FdbFuture<Boolean> = fdbFutureFromSuspend {
-        if (buffer.isNotEmpty()) return@fdbFutureFromSuspend true
-        if (exhausted) return@fdbFutureFromSuspend false
-        requestMore()
-        buffer.isNotEmpty()
+    override fun onHasNext(): FdbFuture<Boolean> = withStateLock {
+        when {
+            cancelled -> AsyncUtil.READY_FALSE
+            buffer.isNotEmpty() -> AsyncUtil.READY_TRUE
+            exhausted -> AsyncUtil.READY_FALSE
+            else -> inFlight ?: fdbFutureFromSuspend {
+                try { requestMore() }
+                finally { withStateLock { inFlight = null } }
+            }.also { inFlight = it }
+        }
     }
 
     override fun cancel() {
-        buffer.clear()
-        exhausted = true
-    }
-}
-
-private class StreamingMappedRangeIterator(
-    initialBegin: KeySelector,
-    initialEnd: KeySelector,
-    private val mapper: ByteArray,
-    private val limit: Int,
-    private val reverse: Boolean,
-    private val fetchPage: (KeySelector, KeySelector, ByteArray, Int, Int) -> FdbFuture<MappedRangePage>
-) : AsyncIterator<MappedKeyValue>() {
-    private val buffer = ArrayDeque<MappedKeyValue>()
-    private var remaining = if (limit > 0) limit else Int.MAX_VALUE
-    private var iteration = 1
-    private var begin = initialBegin
-    private var end = initialEnd
-    private var exhausted = false
-
-    private suspend fun requestMore(): Boolean {
-        if (exhausted || (limit > 0 && remaining <= 0)) return false
-        val pageLimit = if (limit == 0) 0 else remaining
-        val page = fetchPage(begin, end, mapper, pageLimit, iteration).await()
-        iteration++
-        if (page.values.isNotEmpty()) {
-            val emitted = if (limit == 0) page.values else page.values.take(remaining)
-            emitted.forEach { buffer.addLast(it) }
-            if (limit > 0) {
-                remaining -= emitted.size
-            }
-        }
-        val canContinue = page.hasMore && (limit == 0 || remaining > 0)
-        val boundary = page.lastKey
-        if (canContinue && boundary != null) {
-            if (reverse) {
-                end = KeySelector.lastLessThan(boundary)
-            } else {
-                begin = KeySelector.firstGreaterThan(boundary)
-            }
-        } else {
+        val pending = withStateLock {
+            cancelled = true
             exhausted = true
+            buffer.clear()
+            inFlight.also { inFlight = null }
         }
-        return buffer.isNotEmpty()
+        // Cancellation can resume code which re-enters this iterator; never hold its lock.
+        pending?.cancel()
     }
 
-    private fun ensureBufferBlocking(): Boolean {
-        if (buffer.isNotEmpty()) return true
-        if (exhausted) return false
-        return runBlocking { requestMore() } && buffer.isNotEmpty()
-    }
-
-    override fun hasNext(): Boolean = ensureBufferBlocking()
-
-    override suspend fun next(): MappedKeyValue {
-        if (buffer.isEmpty()) {
-            if (!requestMore()) throw NoSuchElementException()
-        }
-        return buffer.removeFirst()
-    }
-
-    override fun onHasNext(): FdbFuture<Boolean> = fdbFutureFromSuspend {
-        if (buffer.isNotEmpty()) return@fdbFutureFromSuspend true
-        if (exhausted) return@fdbFutureFromSuspend false
-        requestMore()
-        buffer.isNotEmpty()
-    }
-
-    override fun cancel() {
-        buffer.clear()
-        exhausted = true
+    private inline fun <R> withStateLock(block: () -> R): R {
+        while (!stateLock.compareAndSet(0, 1)) sched_yield()
+        try { return block() } finally { stateLock.store(0) }
     }
 }
 
 actual open class ReadTransaction internal constructor(
     internal val handle: NativeTransactionHandle,
     internal val snapshot: Boolean
-) {
+) : ReadTransactionContext {
     internal constructor(pointer: CPointer<FDBTransaction>, snapshot: Boolean) : this(
         NativeTransactionHandle(pointer),
         snapshot
@@ -357,7 +317,7 @@ actual open class ReadTransaction internal constructor(
 
     actual fun addReadConflictKeyIfNotSnapshot(key: ByteArray): Boolean {
         if (snapshot) return false
-        addConflictRange(key, key.nextKey(), ConflictRangeType.READ)
+        addConflictRange(key, ByteArrayUtil.keyAfter(key), ConflictRangeType.READ)
         return true
     }
 
@@ -393,7 +353,74 @@ actual open class ReadTransaction internal constructor(
 
     actual open fun options(): TransactionOptions = TransactionOptions(handle)
 
-actual companion object {
+    actual open override fun <T> read(block: (ReadTransaction) -> T): T = block(this)
+    actual open override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T> =
+        try { block(this) } catch (error: Throwable) { failedFdbFuture(error) }
+
+    actual fun isSnapshot(): Boolean = snapshot
+    actual fun getKey(selector: KeySelector): FdbFuture<ByteArray> {
+        val future = handle.usePointerForFuture { transaction -> selector.key.withPointer { key, size ->
+            fdb_transaction_get_key(transaction, key, size, selector.orEqual.toFdbBool(), selector.offset, snapshot.toFdbBool())
+        } } ?: error("Missing get-key future")
+        return NativeFuture(future, onCleanup = handle::releaseFutureUse) { native ->
+            val key = allocPointerTo<UByteVar>()
+            val size = alloc<IntVar>()
+            checkError(fdb_future_get_key(native, key.ptr, size.ptr))
+            if (size.value == 0) byteArrayOf() else key.value!!.readBytes(size.value)
+        }
+    }
+    actual open fun getEstimatedRangeSizeBytes(range: Range): FdbFuture<Long> {
+        val future = handle.usePointerForFuture { pointer ->
+            range.begin.withPointer { beginPtr, beginLen ->
+                range.end.withPointer { endPtr, endLen ->
+                    fdb_transaction_get_estimated_range_size_bytes(pointer, beginPtr, beginLen, endPtr, endLen)
+                }
+            }
+        } ?: error("fdb_transaction_get_estimated_range_size_bytes returned null future")
+        return NativeFuture(future, onCleanup = handle::releaseFutureUse) { fut ->
+            val out = alloc<LongVar>()
+            checkError(fdb_future_get_int64(fut, out.ptr))
+            out.value
+        }
+    }
+
+    actual open fun getRangeSplitPoints(range: Range, chunkSize: Long): FdbFuture<List<ByteArray>> {
+        require(chunkSize > 0)
+        val future = handle.usePointerForFuture { transaction ->
+            range.begin.withPointer { begin, beginSize ->
+                range.end.withPointer { end, endSize ->
+                    fdb_transaction_get_range_split_points(transaction, begin, beginSize, end, endSize, chunkSize)
+                }
+            }
+        } ?: error("Missing split-point future")
+        return NativeFuture(future, onCleanup = handle::releaseFutureUse) { native ->
+            val keys = allocPointerTo<FDBKey>()
+            val count = alloc<IntVar>()
+            checkError(fdb_future_get_key_array(native, keys.ptr, count.ptr))
+            List(count.value) { index ->
+                val key = keys.value!![index]
+                key.key!!.readBytes(key.key_length)
+            }
+        }
+    }
+
+
+    @ExperimentalBlobGranules
+    actual fun getBlobGranuleRanges(range: Range, rowLimit: Int): FdbFuture<List<Range>> {
+        val future = handle.usePointerForFuture { transaction -> range.begin.withPointer { begin, beginSize ->
+            range.end.withPointer { end, endSize -> fdb_transaction_get_blob_granule_ranges(transaction, begin, beginSize, end, endSize, rowLimit) }
+        } }
+        return nativeRangesFuture(future, handle::releaseFutureUse)
+    }
+
+
+    actual fun getRange(begin: KeySelector, end: KeySelector, limit: Int): AsyncIterable<KeyValue> = getRange(begin, end, limit, false)
+    actual fun getMappedRange(begin: KeySelector, end: KeySelector, mapper: ByteArray, limit: Int): AsyncIterable<MappedKeyValue> = getMappedRange(begin, end, mapper, limit, false)
+    actual fun getEstimatedRangeSizeBytes(begin: ByteArray, end: ByteArray): FdbFuture<Long> = getEstimatedRangeSizeBytes(Range(begin, end))
+    actual fun getRangeSplitPoints(begin: ByteArray, end: ByteArray, chunkSize: Long): FdbFuture<List<ByteArray>> = getRangeSplitPoints(Range(begin, end), chunkSize)
+    @ExperimentalBlobGranules
+    actual fun getBlobGranuleRanges(begin: ByteArray, end: ByteArray, rowLimit: Int): FdbFuture<List<Range>> = getBlobGranuleRanges(Range(begin, end), rowLimit)
+    actual companion object {
         actual val ROW_LIMIT_UNLIMITED: Int = 0
     }
 }
@@ -449,11 +476,18 @@ internal class NativeTransactionHandle(private val pointer: CPointer<FDBTransact
     }
 
     fun close() {
-        if (closed.compareAndSet(0, 1)) {
-            if (nonCancellableUses.load() == 0) {
-                fdb_transaction_cancel(pointer)
-            }
-            tryDestroy()
+        // Hold a pointer use BEFORE publishing closed: the last read completion may
+        // otherwise destroy the handle between that publication and native cancel.
+        while (true) {
+            if (closed.load() != 0) return
+            val current = activeUses.load()
+            if (!activeUses.compareAndSet(current, current + 1)) continue
+            try {
+                if (closed.compareAndSet(0, 1) && nonCancellableUses.load() == 0) {
+                    fdb_transaction_cancel(pointer)
+                }
+            } finally { exitUse() }
+            return
         }
     }
 
@@ -512,6 +546,7 @@ private fun ReadTransaction.rangeAsyncIterable(
     reverse: Boolean,
     streamingMode: StreamingMode
 ): AsyncIterable<KeyValue> {
+    checkedRangeLimit(limit)
     val iteratorFactory: () -> AsyncIterator<KeyValue> = {
         StreamingRangeIterator(
             begin.copySelector(),
@@ -523,8 +558,9 @@ private fun ReadTransaction.rangeAsyncIterable(
         }
     }
     val listFutureFactory = {
-        val future = collectRangeInternal(begin.copySelector(), end.copySelector(), limit, reverse, streamingMode)
-        fdbFutureFromSuspend { future.await().values }
+        val capturedBegin = begin.copySelector()
+        val capturedEnd = end.copySelector()
+        fdbFutureFromSuspend { collectRangeResult(capturedBegin, capturedEnd, limit, reverse, listStreamingMode(streamingMode, limit), exactSummary = false).values }
     }
     return AsyncIterable(iteratorFactory = iteratorFactory, listFutureFactory = listFutureFactory)
 }
@@ -537,28 +573,21 @@ private fun ReadTransaction.mappedRangeAsyncIterable(
     reverse: Boolean,
     streamingMode: StreamingMode
 ): AsyncIterable<MappedKeyValue> {
+    checkedRangeLimit(limit)
     val mapperCopy = mapper.copyOf()
     val iteratorFactory: () -> AsyncIterator<MappedKeyValue> = {
-        StreamingMappedRangeIterator(
-            begin.copySelector(),
-            end.copySelector(),
-            mapperCopy.copyOf(),
-            limit,
-            reverse
-        ) { currentBegin, currentEnd, mapperBytes, pageLimit, iteration ->
-            fetchMappedRange(currentBegin, currentEnd, mapperBytes, pageLimit, reverse, streamingMode, iteration)
+        val capturedMapper = mapperCopy.copyOf()
+        StreamingRangeIterator(
+            begin.copySelector(), end.copySelector(), limit, reverse
+        ) { currentBegin, currentEnd, pageLimit, iteration ->
+            fetchMappedRange(currentBegin, currentEnd, capturedMapper, pageLimit, reverse, streamingMode, iteration)
         }
     }
     val listFutureFactory = {
-        val future = collectMappedRangeInternal(
-            begin.copySelector(),
-            end.copySelector(),
-            mapperCopy.copyOf(),
-            limit,
-            reverse,
-            streamingMode
-        )
-        fdbFutureFromSuspend { future.await().values }
+        val capturedBegin = begin.copySelector()
+        val capturedEnd = end.copySelector()
+        val capturedMapper = mapperCopy.copyOf()
+        fdbFutureFromSuspend { collectMappedRangeResult(capturedBegin, capturedEnd, capturedMapper, limit, reverse, listStreamingMode(streamingMode, limit), exactSummary = false).values }
     }
     return AsyncIterable(iteratorFactory = iteratorFactory, listFutureFactory = listFutureFactory)
 }
@@ -594,7 +623,8 @@ private suspend fun ReadTransaction.collectRangeResult(
     end: KeySelector,
     limit: Int,
     reverse: Boolean,
-    streamingMode: StreamingMode
+    streamingMode: StreamingMode,
+    exactSummary: Boolean = true
 ): RangeResult {
     var remaining = if (limit > 0) limit else Int.MAX_VALUE
     var lastKey: ByteArray? = null
@@ -610,7 +640,7 @@ private suspend fun ReadTransaction.collectRangeResult(
         val page = fetchRange(currentBegin, currentEnd, pageLimit, reverse, streamingMode, iteration).await()
         items.addAll(page.values)
         remaining -= page.values.size
-        lastKey = page.lastKey
+        page.lastKey?.let { lastKey = it }
         lastPageHasMore = page.hasMore
         shouldFetchMore = page.hasMore && remaining > 0
         if (shouldFetchMore) {
@@ -618,12 +648,18 @@ private suspend fun ReadTransaction.collectRangeResult(
             if (boundary == null) {
                 shouldFetchMore = false
             } else if (reverse) {
-                currentEnd = KeySelector.lastLessThan(boundary)
+                currentEnd = KeySelector.firstGreaterOrEqual(boundary)
             } else {
                 currentBegin = KeySelector.firstGreaterThan(boundary)
             }
         }
         iteration++
+    }
+
+    // The C page flag means the read stopped before proving exhaustion, even if
+    // the row limit happens to equal the range size. Only summaries need lookahead.
+    if (exactSummary && limit > 0 && remaining <= 0 && lastPageHasMore) {
+        lastPageHasMore = hasPrimaryRowAfter(begin, end, checkNotNull(lastKey), reverse, streamingMode, iteration)
     }
 
     return RangeResult(
@@ -667,7 +703,8 @@ private suspend fun ReadTransaction.collectMappedRangeResult(
     mapper: ByteArray,
     limit: Int,
     reverse: Boolean,
-    streamingMode: StreamingMode
+    streamingMode: StreamingMode,
+    exactSummary: Boolean = true
 ): MappedRangeResult {
     var remaining = if (limit > 0) limit else Int.MAX_VALUE
     var lastKey: ByteArray? = null
@@ -683,7 +720,7 @@ private suspend fun ReadTransaction.collectMappedRangeResult(
         val page = fetchMappedRange(currentBegin, currentEnd, mapper, pageLimit, reverse, streamingMode, iteration).await()
         items.addAll(page.values)
         remaining -= page.values.size
-        lastKey = page.lastKey
+        page.lastKey?.let { lastKey = it }
         lastPageHasMore = page.hasMore
         shouldFetchMore = page.hasMore && remaining > 0
         if (shouldFetchMore) {
@@ -691,12 +728,18 @@ private suspend fun ReadTransaction.collectMappedRangeResult(
             if (boundary == null) {
                 shouldFetchMore = false
             } else if (reverse) {
-                currentEnd = KeySelector.lastLessThan(boundary)
+                currentEnd = KeySelector.firstGreaterOrEqual(boundary)
             } else {
                 currentBegin = KeySelector.firstGreaterThan(boundary)
             }
         }
         iteration++
+    }
+
+    // The C page flag means the read stopped before proving exhaustion, even if
+    // the row limit happens to equal the range size. Only summaries need lookahead.
+    if (exactSummary && limit > 0 && remaining <= 0 && lastPageHasMore) {
+        lastPageHasMore = hasPrimaryRowAfter(begin, end, checkNotNull(lastKey), reverse, streamingMode, iteration)
     }
 
     return MappedRangeResult(
@@ -705,7 +748,21 @@ private suspend fun ReadTransaction.collectMappedRangeResult(
     )
 }
 
-private fun ReadTransaction.fetchRange(
+/** One primary-row probe; mapped summaries do not fetch another secondary range. */
+private suspend fun ReadTransaction.hasPrimaryRowAfter(
+    begin: KeySelector,
+    end: KeySelector,
+    lastKey: ByteArray,
+    reverse: Boolean,
+    streamingMode: StreamingMode,
+    iteration: Int
+): Boolean = fetchRange(
+    if (reverse) begin else KeySelector.firstGreaterThan(lastKey),
+    if (reverse) KeySelector.firstGreaterOrEqual(lastKey) else end,
+    1, reverse, streamingMode, iteration
+).await().values.isNotEmpty()
+
+internal fun ReadTransaction.fetchRange(
     begin: KeySelector,
     end: KeySelector,
     limit: Int,
@@ -744,14 +801,14 @@ private fun ReadTransaction.fetchRange(
             val outMore = alloc<IntVar>()
             checkError(fdb_future_get_keyvalue_array(fut, outKv.ptr, outCount.ptr, outMore.ptr))
             val pointer = outKv.value
-            val values = mutableListOf<KeyValue>()
+            val values = ArrayList<KeyValue>(outCount.value)
             var lastKey: ByteArray? = null
             if (pointer != null) {
                 for (idx in 0 until outCount.value) {
                     val kv = pointer[idx]
                     val keyBytes = kv.key.readFdbBytes(kv.key_length, "key")
                     val valueBytes = kv.value.readFdbBytes(kv.value_length, "value")
-                    values += KeyValue(keyBytes, valueBytes)
+                    values += KeyValue.takeOwnership(keyBytes, valueBytes)
                     lastKey = keyBytes
                 }
             }
@@ -832,7 +889,7 @@ private fun FDBMappedKeyValue.toMappedKeyValue(): MappedKeyValue {
             val kv = dataPointer[idx]
             val key = kv.key.readFdbBytes(kv.key_length, "key")
             val value = kv.value.readFdbBytes(kv.value_length, "value")
-            rangeValues += KeyValue(key, value)
+            rangeValues += KeyValue.takeOwnership(key, value)
         }
     }
     return MappedKeyValue(
@@ -853,4 +910,8 @@ private fun CPointer<UByteVar>?.readFdbBytes(length: Int, fieldName: String): By
     if (length == 0) return ByteArray(0)
     return checkNotNull(this) { "FoundationDB returned null $fieldName pointer with length $length" }
         .readBytes(length)
+
 }
+
+private fun listStreamingMode(mode: StreamingMode, limit: Int): StreamingMode =
+    if (mode != StreamingMode.ITERATOR) mode else if (limit == 0) StreamingMode.WANT_ALL else StreamingMode.EXACT

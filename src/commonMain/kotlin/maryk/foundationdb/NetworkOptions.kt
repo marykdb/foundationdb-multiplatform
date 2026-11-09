@@ -1,6 +1,8 @@
 package maryk.foundationdb
 
 expect class NetworkOptions {
+    constructor(consumer: OptionConsumer)
+    fun getOptionConsumer(): OptionConsumer
     fun setTraceEnable(path: String?)
     fun setTraceRollSize(bytes: Long)
     fun setTraceMaxLogsSize(bytes: Long)
@@ -27,4 +29,28 @@ expect class NetworkOptions {
     fun setClientTmpDir(path: String)
     fun setEnableRunLoopProfiling()
     fun setDisableClientBypass()
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    fun setLocalAddress(value: String)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    fun setClusterFile(value: String)
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    fun setTLSPlugin(value: String)
+    fun setBuggifySectionActivatedProbability(value: Long)
+    fun setBuggifySectionFiredProbability(value: Long)
+    fun setTLSCaBytes(value: ByteArray)
+    fun setTLSCaPath(value: String)
+    fun setTLSPassword(value: String)
+    fun setDisableMultiVersionClientApi()
+    fun setCallbacksOnExternalThreads()
+    fun setExternalClientLibrary(value: String)
+    fun setExternalClientDirectory(value: String)
+    fun setDisableLocalClient()
+    fun setClientThreadsPerVersion(value: Long)
+    fun setFutureVersionClientLibrary(value: String)
+    fun setRetainClientLibraryCopies()
+    fun setIgnoreExternalClientFailures()
+    fun setFailIncompatibleClient()
+    fun setDisableClientStatisticsLogging()
+    @Deprecated("Deprecated upstream; retained for FoundationDB API compatibility.")
+    fun setEnableSlowTaskProfiling()
 }

@@ -1,14 +1,20 @@
 package maryk.foundationdb.async
 
-import java.util.concurrent.CompletableFuture
+import com.apple.foundationdb.async.CloseableAsyncIterator as SdkCloseableAsyncIterator
 
-actual class CloseableAsyncIterator<T> internal constructor(
-    private val closeableDelegate: com.apple.foundationdb.async.CloseableAsyncIterator<*>,
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicBoolean
+
+internal class JavaCloseableAsyncIterator<T>(
+    internal val closeableDelegate: SdkCloseableAsyncIterator<*>,
     mapper: (Any?) -> T
-) : AsyncIterator<T>(closeableDelegate, mapper) {
-    actual constructor(items: List<T>, closeAction: () -> Unit) : this(
-        object : com.apple.foundationdb.async.CloseableAsyncIterator<Any?> {
+) : JavaAsyncIterator<T>(closeableDelegate, mapper), CloseableAsyncIterator<T> {
+    private val closed = AtomicBoolean(false)
+
+    constructor(items: List<T>, closeAction: () -> Unit) : this(
+        object : SdkCloseableAsyncIterator<Any?> {
             private val iterator = items.iterator()
+            private val closed = AtomicBoolean(false)
 
             override fun hasNext(): Boolean = iterator.hasNext()
 
@@ -17,11 +23,11 @@ actual class CloseableAsyncIterator<T> internal constructor(
             override fun onHasNext(): CompletableFuture<Boolean> =
                 CompletableFuture.completedFuture(iterator.hasNext())
 
-            override fun cancel() {}
+            override fun cancel() = close()
             override fun remove() {}
 
             override fun close() {
-                closeAction()
+                if (closed.compareAndSet(false, true)) closeAction()
             }
         },
         {
@@ -30,7 +36,20 @@ actual class CloseableAsyncIterator<T> internal constructor(
         }
     )
 
-    actual fun close() {
-        closeableDelegate.close()
+    override fun cancel() = close()
+
+    override fun close() {
+        if (closed.compareAndSet(false, true)) closeableDelegate.close()
     }
+}
+
+internal fun <T> CloseableAsyncIterator(delegate: SdkCloseableAsyncIterator<*>, mapper: (Any?) -> T): CloseableAsyncIterator<T> = JavaCloseableAsyncIterator(delegate, mapper)
+
+internal actual fun <T> ownedCloseableIterator(source: AsyncIterator<T>, closeAction: () -> Unit): CloseableAsyncIterator<T> = object : CloseableAsyncIterator<T> {
+    private val closed = AtomicBoolean(false)
+    override fun hasNext(): Boolean = source.hasNext()
+    override suspend fun next(): T = source.next()
+    override fun onHasNext() = source.onHasNext()
+    override fun cancel() = close()
+    override fun close() { if (closed.compareAndSet(false, true)) try { source.cancel() } finally { closeAction() } }
 }

@@ -12,6 +12,8 @@ import kotlinx.cinterop.ptr
 import kotlinx.cinterop.value
 
 actual class FDB private constructor() {
+    actual fun getAPIVersion(): Int = NativeEnvironment.selectedApiVersion()
+
     actual fun options(): NetworkOptions = NetworkOptions()
 
     actual fun open(): Database = openInternal(null)
@@ -32,6 +34,9 @@ actual class FDB private constructor() {
     }
 
     actual fun setUnclosedWarning(enabled: Boolean) {}
+
+    actual fun startNetwork() = NativeEnvironment.ensureNetwork()
+    actual fun stopNetwork() = NativeEnvironment.shutdown()
 
     actual fun shutdown() {
         NativeEnvironment.shutdown()
