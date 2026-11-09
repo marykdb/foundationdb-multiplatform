@@ -10,9 +10,9 @@ import java.nio.file.StandardCopyOption
 import java.util.Properties
 
 plugins {
-    kotlin("multiplatform") version "2.4.10"
+    kotlin("multiplatform") version "2.4.21"
     id("com.vanniktech.maven.publish") version "0.37.0"
-    id("org.jetbrains.kotlinx.kover") version "0.9.9"
+    id("org.jetbrains.kotlinx.kover") version "0.9.11"
 }
 
 repositories {

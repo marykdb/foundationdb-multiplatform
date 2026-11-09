@@ -1,6 +1,6 @@
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 
-plugins { kotlin("multiplatform") version "2.4.10" }
+plugins { kotlin("multiplatform") version "2.4.21" }
 repositories {
     maven {
         url = uri(providers.gradleProperty("bindingRepository").get())
