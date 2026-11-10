@@ -12,11 +12,9 @@ import com.apple.foundationdb.directory.DirectoryAlreadyExistsException as JavaD
 
 import com.apple.foundationdb.directory.Directory as JavaDirectory
 
-import maryk.foundationdb.Database
 import maryk.foundationdb.FdbFuture
 import maryk.foundationdb.ReadTransaction
 import maryk.foundationdb.ReadTransactionContext
-import maryk.foundationdb.Tenant
 import maryk.foundationdb.Transaction
 import maryk.foundationdb.TransactionContext
 import maryk.foundationdb.mapToFdbFuture
@@ -85,16 +83,12 @@ internal class DirectoryAdapter(
 }
 
 private fun <T> directoryWrite(context: TransactionContext, operation: (JavaTransactionContext) -> CompletableFuture<T>): CompletableFuture<T> = try { when (context) {
-    is Database -> operation(context.delegate)
     is Transaction -> operation(context.delegate)
-    is Tenant -> operation(context.delegate)
     else -> context.runAsync { operation(it.delegate).toFdbFuture() }.asCompletableFuture()
 } } catch (error: Throwable) { CompletableFuture.failedFuture(error.toCommonDirectoryException()) }
 
 private fun <T> directoryRead(context: ReadTransactionContext, operation: (JavaReadContext) -> CompletableFuture<T>): CompletableFuture<T> = try { when (context) {
-    is Database -> operation(context.delegate)
     is Transaction -> operation(context.delegate)
-    is Tenant -> operation(context.delegate)
     is ReadTransaction -> operation(context.delegate)
     else -> context.readAsync { operation(it.delegate).toFdbFuture() }.asCompletableFuture()
 } } catch (error: Throwable) { CompletableFuture.failedFuture(error.toCommonDirectoryException()) }

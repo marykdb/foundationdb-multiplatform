@@ -25,6 +25,11 @@ and handler helpers observe their input and handler-returned futures without can
 them when their result is cancelled. Cancel input operations explicitly when you own
 them. `whileTrue` owns the operation produced by each invocation of its body.
 
+Database and tenant retry operations own their transaction. Cancelling their future
+cancels the active body or commit and closes the transaction; a replacement delivered
+by an in-flight retry is closed when it arrives. An observed wait leaves this ownership
+with the operation. Explicit transaction contexts retain caller close ownership.
+
 Cancellation is best effort. In particular, cancellation of an administration operation
 does not guarantee that its transaction did not commit.
 

@@ -64,11 +64,11 @@ actual class Database internal constructor(
         delegate.run { txn -> block(Transaction(txn)) }
 
     actual override fun <T> runAsync(block: (Transaction) -> FdbFuture<T>): FdbFuture<T> =
-        delegate.runAsync { txn -> block(Transaction(txn)).asCompletableFuture() }.toFdbFuture()
+        runAsyncWithRetry(createTransaction(), delegate.executor, block)
 
     actual override fun <T> read(block: (ReadTransaction) -> T): T =
         delegate.read { rt -> block(ReadTransaction(rt)) }
 
     actual override fun <T> readAsync(block: (ReadTransaction) -> FdbFuture<T>): FdbFuture<T> =
-        delegate.readAsync { rt -> block(ReadTransaction(rt)).asCompletableFuture() }.toFdbFuture()
+        runAsyncWithRetry(createTransaction(), delegate.executor) { txn -> block(ReadTransaction(txn.delegate)) }
 }

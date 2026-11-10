@@ -2,6 +2,9 @@ package maryk.foundationdb
 
 import com.apple.foundationdb.Database as JavaDatabase
 import com.apple.foundationdb.ReadTransaction as JavaReadTransaction
+import com.apple.foundationdb.Transaction as JavaTransaction
+import com.apple.foundationdb.TransactionOptions as JavaTransactionOptions
+import java.util.concurrent.Executor
 import com.apple.foundationdb.KeyValue as JavaKeyValue
 import com.apple.foundationdb.MappedKeyValue as JavaMappedKeyValue
 import com.apple.foundationdb.async.AsyncIterable as JavaAsyncIterable
@@ -107,19 +110,34 @@ class JavaRangeCollectionOwnershipTest {
         assertEquals(2, mappedRows.reads.get())
     }
 
-    @Test fun tenantAdministrationCancellationReachesTheSdkOperation() {
+    @Test fun tenantAdministrationCancellationClosesTheOwnedTransaction() {
         for (create in listOf(false, true)) {
-            val source = CompletableFuture<Void>()
+            val source = CompletableFuture<ByteArray>()
+            val closed = AtomicInteger()
+            val transaction = Proxy.newProxyInstance(JavaTransaction::class.java.classLoader,
+                arrayOf(JavaTransaction::class.java)) { _, method, _ ->
+                when (method.name) {
+                    "get" -> source
+                    "options" -> JavaTransactionOptions { _, _ -> }
+                    "close" -> { closed.incrementAndGet(); null }
+                    "cancel" -> null
+                    else -> error("Unexpected transaction operation: ${method.name}")
+                }
+            } as JavaTransaction
             val delegate = Proxy.newProxyInstance(JavaDatabase::class.java.classLoader,
                 arrayOf(JavaDatabase::class.java)) { _, method, _ ->
-                check(method.name == "runAsync")
-                source
+                when (method.name) {
+                    "createTransaction" -> transaction
+                    "getExecutor" -> Executor { it.run() }
+                    else -> error("Unexpected database operation: ${method.name}")
+                }
             } as JavaDatabase
             val database = Database(delegate)
             val future = if (create) TenantManagement.createTenant(database, byteArrayOf(1))
                 else TenantManagement.deleteTenant(database, byteArrayOf(1))
             future.cancel()
             assertTrue(source.isCancelled)
+            assertEquals(1, closed.get())
         }
     }
 }
