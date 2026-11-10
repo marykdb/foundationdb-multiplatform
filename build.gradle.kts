@@ -42,7 +42,7 @@ val foundationDbApiVersion = 730
 val foundationDbReleaseBranch = foundationDbVersion
 
 group = "io.maryk.foundationdb"
-version = "7.3.81"
+version = "7.3.81.1-SNAPSHOT"
 
 extensions.extraProperties["foundationDbVersion"] = foundationDbVersion
 extensions.extraProperties["foundationDbNativeDir"] = foundationDbNativeDir
