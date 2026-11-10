@@ -54,15 +54,19 @@ import maryk.foundationdb.readSuspend
 import maryk.foundationdb.tuple.Tuple
 
 fun main() = runBlocking {
-    FDB.selectAPIVersion(ApiVersion.LATEST)
-    val database = FDB.instance().open()
+    val fdb = FDB.selectAPIVersion(ApiVersion.LATEST)
+    val database = fdb.open()
     try {
         val key = Tuple.from("hello").pack()
         database.run { it.set(key, "world".encodeToByteArray()) }
         val value = database.readSuspend { it.get(key).await() }
         println(value?.decodeToString())
     } finally {
-        database.close()
+        try {
+            database.close()
+        } finally {
+            fdb.shutdown()
+        }
     }
 }
 ```

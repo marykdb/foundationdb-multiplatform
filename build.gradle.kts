@@ -1,6 +1,7 @@
 
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import java.net.URI
@@ -210,6 +211,13 @@ val stopFoundationDBForTests by tasks.registering(Exec::class) {
     description = "Stop the local fdbserver started for tests"
     commandLine("bash", foundationDbScriptsDir.resolve("stop-fdb-for-tests.sh").absolutePath)
     isIgnoreExitValue = true
+}
+
+// NativeBinary compiler arguments realize link tasks, so configure after installFoundationDB.
+kotlin.targets.withType<KotlinNativeTarget>().configureEach {
+    binaries.withType<TestExecutable>().configureEach {
+        freeCompilerArgs += listOf("-entry", "maryk.foundationdb.runNativeTests")
+    }
 }
 
 tasks.named("jvmTest").configure {

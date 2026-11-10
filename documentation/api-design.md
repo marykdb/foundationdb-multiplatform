@@ -4,6 +4,15 @@ The common API exposes FoundationDB client capabilities with Kotlin types. It fo
 supported Java client behavior while providing coroutine-friendly futures and iteration.
 JVM-specific integration is available through `maryk.foundationdb.jvm`.
 
+## Client lifecycle
+
+FoundationDB's network is process-wide. Close iterators, transactions and databases
+when their work is complete. Before a Native process exits, its host application must
+call `FDB.instance().shutdown()` after its final FoundationDB operation. Native shutdown
+stops the network and joins its worker before returning. Shutdown is terminal: the
+network cannot be restarted in the same process. Libraries sharing a client should
+leave final shutdown to the host rather than stopping it when one database closes.
+
 ## Transactions and cancellation
 
 Use `runSuspend` and `readSuspend` for suspending transaction blocks. Each retry attempt
@@ -118,6 +127,12 @@ no equivalent JVM detector or reliable inference for arbitrary raw keys. Read th
 runner verifies copied data, retains the source and leaves application cutover explicit.
 
 ## Development checks
+
+Native test binaries wrap Kotlin's generated test launcher and shut down FoundationDB
+after the selected tests finish, including failed runs. This leaves filters, reporting
+and failure exit codes with Kotlin's runner while stopping the network before process
+teardown. Legacy API tests still run in separate processes because API selection and
+network shutdown apply to the whole process.
 
 `checkKotlinAbi` checks JVM and Native API baselines in `api/`. Use `updateKotlinAbi`
 only for reviewed API changes. These baselines do not make earlier breaking changes
